@@ -1,0 +1,58 @@
+{
+  "n_variants_generated": 3515,
+  "n_ensemble_combos_tested": 3000000,
+  "best_single": {
+    "config": {
+      "type": "single",
+      "name": "rsi_reversion",
+      "params": {
+        "period": 7,
+        "oversold": 15,
+        "overbought": 90
+      }
+    },
+    "holdout_sharpe": 0.5884097884768389,
+    "holdout_total_return_pct": 1.4260000000001716
+  },
+  "best_ensemble": {
+    "config": {
+      "type": "ensemble",
+      "threshold": 0.38514748215675354,
+      "members": [
+        {
+          "name": "ultimate_oscillator_reversion",
+          "params": {
+            "period1": 7,
+            "period2": 18,
+            "period3": 28,
+            "oversold": 25,
+            "overbought": 75
+          },
+          "weight": 1.280286192893982
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 9,
+            "oversold": 35,
+            "overbought": 85
+          },
+          "weight": 1.152320384979248
+        },
+        {
+          "name": "wick_rejection",
+          "params": {
+            "trend_period": 100,
+            "wick_ratio_min": 0.7,
+            "hold_bars": 5
+          },
+          "weight": 1.27384352684021
+        }
+      ]
+    },
+    "holdout_sharpe": 0.25923660640626933,
+    "holdout_total_return_pct": 0.4900000000002347,
+    "holdout_first_half_return_pct": -2.0699999999999052,
+    "holdout_second_half_return_pct": 1.760000000000117
+  }
+}
