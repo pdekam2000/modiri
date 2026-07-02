@@ -7,6 +7,15 @@ on entry, applies a round-turn commission, and checks stop-loss/take-profit
 against each bar's high/low (not just the close), so results are a lot
 closer to what a live account would see than a naive close-to-close model.
 It is still a backtest, not a guarantee of future performance.
+
+Two optional risk-management upgrades on top of the fixed-pips baseline:
+  - ATR-based stops: the stop distance (and therefore position size) adapts
+    to current volatility instead of using the same pip count in a quiet
+    market and a violent one.
+  - Partial ("two-stage") take-profit: close part of the position at a
+    closer first target and move the stop to breakeven, letting the rest
+    run toward a further target -- instead of one all-or-nothing exit.
+Both default to off so existing fixed-pips behaviour is unchanged.
 """
 from __future__ import annotations
 
@@ -17,6 +26,7 @@ import pandas as pd
 
 from modiri_bot.risk.position_sizing import lots_for_fixed_risk
 from modiri_bot.strategies.base import Strategy
+from modiri_bot.strategies.indicators import atr as atr_indicator
 
 
 @dataclass
@@ -34,6 +44,23 @@ class BacktestConfig:
     take_profit_pips: float = 80.0
     max_daily_loss_pct: float | None = 3.0
     max_drawdown_pct: float | None = 15.0
+
+    # ATR-adaptive stops: when enabled, the stop (and take-profit, and thus
+    # position size) is computed from ATR at entry time instead of the
+    # fixed stop_loss_pips/take_profit_pips above.
+    use_atr_stops: bool = False
+    atr_period: int = 14
+    atr_sl_mult: float = 1.5
+    atr_tp_mult: float = 3.0
+
+    # Two-stage take-profit: close `tp1_close_fraction` of the position at
+    # a first target `tp1_r_multiple` stop-distances away, optionally move
+    # the stop to breakeven for the remainder, and let the rest run to the
+    # normal (fixed-pips or ATR) take-profit level.
+    use_partial_tp: bool = False
+    tp1_r_multiple: float = 1.0
+    tp1_close_fraction: float = 0.5
+    move_sl_to_breakeven_after_tp1: bool = True
 
 
 @dataclass
@@ -71,11 +98,15 @@ class BacktestEngine:
         signals = strategy.generate_signals(df).to_numpy()
 
         idx = df.index
-        o = df["open"].to_numpy()
         h = df["high"].to_numpy()
         l = df["low"].to_numpy()
         c = df["close"].to_numpy()
         n = len(df)
+
+        atr_values = (
+            atr_indicator(df["high"], df["low"], df["close"], cfg.atr_period).to_numpy()
+            if cfg.use_atr_stops else None
+        )
 
         balance = cfg.initial_balance
         equity_curve = np.empty(n)
@@ -86,6 +117,8 @@ class BacktestEngine:
         lots = 0.0
         sl_price = 0.0
         tp_price = 0.0
+        tp1_price = 0.0
+        tp1_done = False
         entry_time = None
 
         equity_peak = balance
@@ -96,20 +129,23 @@ class BacktestEngine:
 
         spread_cost = cfg.spread_pips * cfg.pip_size
 
-        def close_position(exit_price: float, exit_time, reason: str) -> None:
+        def close_position(exit_price: float, exit_time, reason: str, close_lots: float | None = None) -> None:
             nonlocal balance, position, lots
             direction = 1 if position == 1 else -1
+            realized_lots = lots if close_lots is None else close_lots
             price_diff = (exit_price - entry_price) * direction
-            gross_pnl = (price_diff / cfg.pip_size) * cfg.pip_value_per_lot * lots
-            commission = cfg.commission_per_lot * lots
+            gross_pnl = (price_diff / cfg.pip_size) * cfg.pip_value_per_lot * realized_lots
+            commission = cfg.commission_per_lot * realized_lots
             pnl = gross_pnl - commission
             balance += pnl
             trades.append(
                 Trade(entry_time, exit_time, "buy" if position == 1 else "sell",
-                      entry_price, exit_price, lots, pnl, reason)
+                      entry_price, exit_price, realized_lots, pnl, reason)
             )
-            position = 0
-            lots = 0.0
+            lots -= realized_lots
+            if close_lots is None or lots <= 1e-9:
+                position = 0
+                lots = 0.0
 
         for i in range(n):
             bar_time = idx[i]
@@ -119,24 +155,35 @@ class BacktestEngine:
                 day_start_balance = balance
                 day_trading_blocked = False
 
-            # 1. Manage an existing position: check SL/TP against this bar's range.
+            # 1. Manage an existing position: partial TP first (if enabled),
+            # then final SL/TP, against this bar's range.
             if position != 0:
-                if position == 1:
-                    hit_sl = l[i] <= sl_price
-                    hit_tp = h[i] >= tp_price
-                else:
-                    hit_sl = h[i] >= sl_price
-                    hit_tp = l[i] <= tp_price
+                if cfg.use_partial_tp and not tp1_done:
+                    hit_tp1 = (h[i] >= tp1_price) if position == 1 else (l[i] <= tp1_price)
+                    if hit_tp1:
+                        close_position(tp1_price, bar_time, "take_profit_1",
+                                        close_lots=lots * cfg.tp1_close_fraction)
+                        tp1_done = True
+                        if cfg.move_sl_to_breakeven_after_tp1:
+                            sl_price = entry_price
 
-                if hit_sl and hit_tp:
-                    # Can't know intrabar order for sure; assume the worse outcome (SL) first.
-                    close_position(sl_price, bar_time, "stop_loss")
-                elif hit_sl:
-                    close_position(sl_price, bar_time, "stop_loss")
-                elif hit_tp:
-                    close_position(tp_price, bar_time, "take_profit")
-                elif signals[i] != position:
-                    close_position(c[i], bar_time, "signal_flip")
+                if position != 0:
+                    if position == 1:
+                        hit_sl = l[i] <= sl_price
+                        hit_tp = h[i] >= tp_price
+                    else:
+                        hit_sl = h[i] >= sl_price
+                        hit_tp = l[i] <= tp_price
+
+                    if hit_sl and hit_tp:
+                        # Can't know intrabar order for sure; assume the worse outcome (SL) first.
+                        close_position(sl_price, bar_time, "stop_loss")
+                    elif hit_sl:
+                        close_position(sl_price, bar_time, "stop_loss")
+                    elif hit_tp:
+                        close_position(tp_price, bar_time, "take_profit")
+                    elif signals[i] != position:
+                        close_position(c[i], bar_time, "signal_flip")
 
             # 2. Daily loss limit check.
             if cfg.max_daily_loss_pct is not None and day_start_balance > 0:
@@ -160,10 +207,18 @@ class BacktestEngine:
             ):
                 side = signals[i]
                 raw_entry = c[i] + spread_cost if side == 1 else c[i] - spread_cost
+
+                if cfg.use_atr_stops and atr_values is not None and not np.isnan(atr_values[i]) and atr_values[i] > 0:
+                    sl_pips = (atr_values[i] * cfg.atr_sl_mult) / cfg.pip_size
+                    tp_pips = (atr_values[i] * cfg.atr_tp_mult) / cfg.pip_size
+                else:
+                    sl_pips = cfg.stop_loss_pips
+                    tp_pips = cfg.take_profit_pips
+
                 lots = lots_for_fixed_risk(
                     equity=balance,
                     risk_per_trade_pct=cfg.risk_per_trade_pct,
-                    stop_loss_pips=cfg.stop_loss_pips,
+                    stop_loss_pips=sl_pips,
                     pip_value_per_lot=cfg.pip_value_per_lot,
                     min_lot=cfg.min_lot,
                     lot_step=cfg.lot_step,
@@ -173,12 +228,17 @@ class BacktestEngine:
                     position = side
                     entry_price = raw_entry
                     entry_time = bar_time
+                    tp1_done = False
+                    sl_distance = sl_pips * cfg.pip_size
+                    tp_distance = tp_pips * cfg.pip_size
                     if side == 1:
-                        sl_price = entry_price - cfg.stop_loss_pips * cfg.pip_size
-                        tp_price = entry_price + cfg.take_profit_pips * cfg.pip_size
+                        sl_price = entry_price - sl_distance
+                        tp_price = entry_price + tp_distance
+                        tp1_price = entry_price + sl_distance * cfg.tp1_r_multiple
                     else:
-                        sl_price = entry_price + cfg.stop_loss_pips * cfg.pip_size
-                        tp_price = entry_price - cfg.take_profit_pips * cfg.pip_size
+                        sl_price = entry_price + sl_distance
+                        tp_price = entry_price - tp_distance
+                        tp1_price = entry_price - sl_distance * cfg.tp1_r_multiple
 
             # Mark-to-market equity for the curve.
             if position != 0:

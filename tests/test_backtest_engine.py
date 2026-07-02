@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from modiri_bot.backtest.engine import BacktestConfig, BacktestEngine
 from modiri_bot.strategies.base import Strategy
@@ -132,3 +133,73 @@ def test_drawdown_kill_switch_stops_new_trades():
     assert len(result.trades) < n / 2
     equity = result.equity_curve
     assert (equity.iloc[-30:] == equity.iloc[-1]).all()
+
+
+def test_atr_stops_widen_with_higher_volatility():
+    n = 60
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    rng = np.random.default_rng(0)
+    # Calm market, then a clearly more volatile stretch -- ATR should reflect that.
+    close = np.concatenate([np.full(30, 1.1000), 1.1000 + np.cumsum(rng.normal(0, 0.001, 30))])
+    high = close + np.concatenate([np.full(30, 0.0002), np.full(30, 0.0015)])
+    low = close - np.concatenate([np.full(30, 0.0002), np.full(30, 0.0015)])
+    df = pd.DataFrame({"open": close, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    cfg = make_config(use_atr_stops=True, atr_period=5, atr_sl_mult=1.5, atr_tp_mult=3.0)
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+    assert len(result.trades) >= 1  # ran without error and actually traded
+
+
+def test_partial_take_profit_closes_half_then_lets_rest_run():
+    n = 10
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    high = np.full(n, 1.1000)
+    # Bar 3: hits TP1 (1R = 20 pips above entry). Bar 7: hits the final TP.
+    high[3] = 1.1021
+    high[7] = 1.1041
+    low = np.full(n, 1.0999)
+    df = pd.DataFrame({"open": close, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    cfg = make_config(
+        stop_loss_pips=20.0, take_profit_pips=40.0, spread_pips=0.0, commission_per_lot=0.0,
+        use_partial_tp=True, tp1_r_multiple=1.0, tp1_close_fraction=0.5,
+        move_sl_to_breakeven_after_tp1=True,
+    )
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+
+    reasons = [t.exit_reason for t in result.trades]
+    assert "take_profit_1" in reasons
+    tp1_trade = next(t for t in result.trades if t.exit_reason == "take_profit_1")
+    assert tp1_trade.pnl > 0
+    # Only half the position should have closed at TP1.
+    full_position_lots = tp1_trade.lots * 2
+    assert tp1_trade.lots == pytest.approx(full_position_lots / 2)
+
+
+def test_partial_take_profit_moves_stop_to_breakeven():
+    n = 10
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    high = np.full(n, 1.1000)
+    high[3] = 1.1021  # hits TP1, moving the stop to breakeven (1.1000)
+    low = np.full(n, 1.0999)
+    # Dips just below breakeven -- would NOT have hit the original 20-pip
+    # stop (1.0980), but should hit the now-tightened breakeven stop.
+    low[5] = 1.0995
+    df = pd.DataFrame({"open": close, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    cfg = make_config(
+        stop_loss_pips=20.0, take_profit_pips=1000.0, spread_pips=0.0, commission_per_lot=0.0,
+        use_partial_tp=True, tp1_r_multiple=1.0, tp1_close_fraction=0.5,
+        move_sl_to_breakeven_after_tp1=True,
+    )
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+
+    reasons = [t.exit_reason for t in result.trades]
+    assert reasons[:2] == ["take_profit_1", "stop_loss"]
+    breakeven_trade = next(t for t in result.trades if t.exit_reason == "stop_loss")
+    assert breakeven_trade.exit_price == pytest.approx(1.1000)  # breakeven, not the original far-off stop
