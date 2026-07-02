@@ -241,3 +241,54 @@ def candle_shape(open_: pd.Series, high: pd.Series, low: pd.Series, close: pd.Se
     upper_wick = high - pd.concat([open_, close], axis=1).max(axis=1)
     lower_wick = pd.concat([open_, close], axis=1).min(axis=1) - low
     return body, upper_wick, lower_wick, range_
+
+
+def heikin_ashi(open_: pd.Series, high: pd.Series, low: pd.Series, close: pd.Series):
+    """Smoothed candles: each HA candle blends the current bar with the
+    previous HA candle, filtering out a lot of single-bar noise."""
+    ha_close = (open_ + high + low + close) / 4.0
+    ha_open = pd.Series(np.nan, index=open_.index)
+    o = open_.to_numpy()
+    c = close.to_numpy()
+    hc = ha_close.to_numpy()
+    ho = np.empty(len(o))
+    ho[0] = (o[0] + c[0]) / 2.0
+    for i in range(1, len(o)):
+        ho[i] = (ho[i - 1] + hc[i - 1]) / 2.0
+    ha_open = pd.Series(ho, index=open_.index)
+    ha_high = pd.concat([high, ha_open, ha_close], axis=1).max(axis=1)
+    ha_low = pd.concat([low, ha_open, ha_close], axis=1).min(axis=1)
+    return ha_open, ha_high, ha_low, ha_close
+
+
+def swing_points(high: pd.Series, low: pd.Series, order: int = 3):
+    """A bar is a confirmed swing high/low once `order` bars on both sides
+    are known to be lower/higher. Returned series are NaN except at the
+    (lagged, look-ahead-free once `order` bars have passed) confirmation
+    point, where they carry the swing's price."""
+    h, l = high.to_numpy(), low.to_numpy()
+    n = len(h)
+    swing_high = np.full(n, np.nan)
+    swing_low = np.full(n, np.nan)
+    for i in range(order, n - order):
+        window_h = h[i - order: i + order + 1]
+        window_l = l[i - order: i + order + 1]
+        if h[i] == window_h.max():
+            swing_high[i + order] = h[i]
+        if l[i] == window_l.min():
+            swing_low[i + order] = l[i]
+    return pd.Series(swing_high, index=high.index), pd.Series(swing_low, index=low.index)
+
+
+def daily_pivot_points(df: pd.DataFrame):
+    """Classic floor-trader pivots from the prior day's H/L/C, aligned back
+    onto the original (intraday) index without look-ahead."""
+    daily = df.resample("1D").agg({"high": "max", "low": "min", "close": "last"}).dropna()
+    prev = daily.shift(1)
+    pp = (prev["high"] + prev["low"] + prev["close"]) / 3.0
+    r1 = 2 * pp - prev["low"]
+    s1 = 2 * pp - prev["high"]
+    r2 = pp + (prev["high"] - prev["low"])
+    s2 = pp - (prev["high"] - prev["low"])
+    levels = pd.DataFrame({"pp": pp, "r1": r1, "s1": s1, "r2": r2, "s2": s2})
+    return levels.reindex(df.index, method="ffill")

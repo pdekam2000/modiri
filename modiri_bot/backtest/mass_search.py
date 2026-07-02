@@ -139,6 +139,22 @@ FINE_PARAM_GRIDS = {
         "session_start_hour": [0, 6, 7, 8, 12, 13],
         "session_end_hour": [10, 11, 16, 17, 21, 23],
     },
+    "rsi_divergence": {
+        "rsi_period": [7, 9, 11, 14, 18, 21],
+        "swing_order": [2, 3, 4, 5, 7],
+        "hold_bars": [3, 5, 8, 12],
+    },
+    "pivot_points": {
+        "level": ["1", "2"],
+        "hold_bars": [2, 3, 5, 8, 12],
+    },
+    "heikin_ashi_trend": {
+        "confirm_bars": [1, 2, 3, 4],
+    },
+    "swing_level_bounce": {
+        "swing_order": [2, 3, 4, 5, 8, 12],
+        "hold_bars": [2, 3, 5, 8, 12],
+    },
 }
 
 

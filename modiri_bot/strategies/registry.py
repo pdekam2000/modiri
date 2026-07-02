@@ -10,16 +10,20 @@ from .bollinger_breakout import BollingerBreakoutStrategy
 from .candlestick_patterns import CandlestickPatternStrategy
 from .cci_reversion import CCIReversionStrategy
 from .donchian_breakout import DonchianBreakoutStrategy
+from .heikin_ashi_trend import HeikinAshiTrendStrategy
 from .ichimoku_strategy import IchimokuStrategy
 from .ma_crossover import MACrossoverStrategy
 from .macd_trend import MACDTrendStrategy
 from .mfi_reversion import MFIReversionStrategy
 from .mtf_trend_filter import MTFTrendFilterStrategy
 from .parabolic_sar_trend import ParabolicSARTrendStrategy
+from .pivot_points import PivotPointBounceStrategy
+from .rsi_divergence import RSIDivergenceStrategy
 from .rsi_reversion import RSIReversionStrategy
 from .session_filtered import SessionFilteredStrategy
 from .stochastic_reversion import StochasticReversionStrategy
 from .supertrend_strategy import SuperTrendStrategy
+from .swing_level_bounce import SwingLevelBounceStrategy
 from .trend_pullback import TrendPullbackStrategy
 from .volume_spike import VolumeSpikeStrategy
 from .vortex_trend import VortexTrendStrategy
@@ -52,6 +56,10 @@ STRATEGY_CLASSES = {
     "wick_rejection": WickRejectionStrategy,
     "volume_spike": VolumeSpikeStrategy,
     "session_filtered": SessionFilteredStrategy,
+    "rsi_divergence": RSIDivergenceStrategy,
+    "pivot_points": PivotPointBounceStrategy,
+    "heikin_ashi_trend": HeikinAshiTrendStrategy,
+    "swing_level_bounce": SwingLevelBounceStrategy,
 }
 
 # Reasonably small grids -- kept tight so walk-forward optimization runs in
@@ -163,6 +171,19 @@ PARAM_GRIDS = {
         "slow_period": [20, 30, 50],
         "session_start_hour": [7, 8, 13],
         "session_end_hour": [11, 16, 17],
+    },
+    "rsi_divergence": {
+        "rsi_period": [9, 14, 21],
+        "swing_order": [2, 3, 5],
+    },
+    "pivot_points": {
+        "level": ["1", "2"],
+    },
+    "heikin_ashi_trend": {
+        "confirm_bars": [1, 2, 3],
+    },
+    "swing_level_bounce": {
+        "swing_order": [3, 5, 8],
     },
 }
 

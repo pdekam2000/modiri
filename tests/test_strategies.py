@@ -11,16 +11,20 @@ from modiri_bot.strategies.candlestick_patterns import CandlestickPatternStrateg
 from modiri_bot.strategies.cci_reversion import CCIReversionStrategy
 from modiri_bot.strategies.donchian_breakout import DonchianBreakoutStrategy
 from modiri_bot.strategies.ensemble import EnsembleStrategy
+from modiri_bot.strategies.heikin_ashi_trend import HeikinAshiTrendStrategy
 from modiri_bot.strategies.ichimoku_strategy import IchimokuStrategy
 from modiri_bot.strategies.ma_crossover import MACrossoverStrategy
 from modiri_bot.strategies.macd_trend import MACDTrendStrategy
 from modiri_bot.strategies.mfi_reversion import MFIReversionStrategy
 from modiri_bot.strategies.mtf_trend_filter import MTFTrendFilterStrategy
 from modiri_bot.strategies.parabolic_sar_trend import ParabolicSARTrendStrategy
+from modiri_bot.strategies.pivot_points import PivotPointBounceStrategy
+from modiri_bot.strategies.rsi_divergence import RSIDivergenceStrategy
 from modiri_bot.strategies.rsi_reversion import RSIReversionStrategy
 from modiri_bot.strategies.session_filtered import SessionFilteredStrategy
 from modiri_bot.strategies.stochastic_reversion import StochasticReversionStrategy
 from modiri_bot.strategies.supertrend_strategy import SuperTrendStrategy
+from modiri_bot.strategies.swing_level_bounce import SwingLevelBounceStrategy
 from modiri_bot.strategies.trend_pullback import TrendPullbackStrategy
 from modiri_bot.strategies.volume_spike import VolumeSpikeStrategy
 from modiri_bot.strategies.vortex_trend import VortexTrendStrategy
@@ -53,6 +57,10 @@ ALL_STRATEGIES = [
     WickRejectionStrategy(),
     VolumeSpikeStrategy(),
     SessionFilteredStrategy(),
+    RSIDivergenceStrategy(),
+    PivotPointBounceStrategy(),
+    HeikinAshiTrendStrategy(),
+    SwingLevelBounceStrategy(),
 ]
 
 
@@ -184,3 +192,60 @@ def test_session_filter_zeroes_signal_outside_the_window():
     outside_hours = signals.index.hour[(signals.index.hour < 8) | (signals.index.hour >= 16)]
     assert len(outside_hours) > 0
     assert (signals[(signals.index.hour < 8) | (signals.index.hour >= 16)] == 0).all()
+
+
+def test_pivot_point_bounce_needs_a_touch_and_close_back_above_support():
+    n = 60
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    # A quiet first day (sets tomorrow's pivots), then a dip-and-recover
+    # through the S1 level on day two.
+    close = np.full(n, 1.1000)
+    open_ = np.full(n, 1.1000)
+    high = np.full(n, 1.1010)
+    low = np.full(n, 1.0990)
+    # Day 2, one bar dips well below S1 and closes back above it.
+    low[30] = 1.0950
+    close[30] = 1.1000
+    df = pd.DataFrame({"open": open_, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    strategy = PivotPointBounceStrategy(level="1", hold_bars=3)
+    signals = strategy.generate_signals(df)
+    assert set(signals.unique()).issubset({-1, 0, 1})
+    assert (signals.iloc[31:34] != 0).any()  # a bounce should have triggered a position shortly after
+
+
+def test_heikin_ashi_requires_consecutive_confirmation():
+    n = 40
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = 1.10 + np.arange(n) * 0.001  # clean, steady uptrend
+    open_ = np.roll(close, 1)
+    open_[0] = 1.10
+    df = pd.DataFrame(
+        {"open": open_, "high": np.maximum(open_, close) + 0.0002,
+         "low": np.minimum(open_, close) - 0.0002, "close": close, "volume": 100.0},
+        index=index,
+    )
+    strategy = HeikinAshiTrendStrategy(confirm_bars=3)
+    signals = strategy.generate_signals(df)
+    assert signals.iloc[-1] == 1
+    assert signals.iloc[0] == 0  # can't confirm a streak on the very first bar
+
+
+def test_swing_level_bounce_reacts_to_recent_swing_low():
+    n = 60
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    open_ = np.full(n, 1.1000)
+    high = np.full(n, 1.1010)
+    low = np.full(n, 1.0990)
+    # A clear swing low around bar 20 (confirmed a few bars later).
+    low[20] = 1.0950
+    close[20] = 1.0960
+    # Then price revisits and bounces off that same level later.
+    low[45] = 1.0951
+    close[45] = 1.1000
+    df = pd.DataFrame({"open": open_, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    strategy = SwingLevelBounceStrategy(swing_order=3, hold_bars=3)
+    signals = strategy.generate_signals(df)
+    assert set(signals.unique()).issubset({-1, 0, 1})
