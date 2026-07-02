@@ -61,19 +61,22 @@
       "max_hold_bars": 15,
       "use_volatility_filter": true,
       "volatility_percentile_threshold": 95.0,
-      "volatility_size_mult": 0.5
+      "volatility_size_mult": 0.5,
+      "use_trailing_stop": true,
+      "trailing_start_r_multiple": 0.4,
+      "trailing_distance_r_multiple": 0.4
     },
     "production_holdout_metrics": {
-      "total_return_pct": 7.28,
-      "sharpe": 2.13,
-      "sortino": 1.49,
-      "max_drawdown_pct": 2.52,
-      "win_rate_pct": 60.0,
-      "profit_factor": 1.75,
-      "num_trades": 35,
-      "holdout_first_half_return_pct": 1.46,
-      "holdout_second_half_return_pct": 5.47
+      "total_return_pct": 8.20,
+      "sharpe": 2.71,
+      "sortino": 2.24,
+      "max_drawdown_pct": 2.69,
+      "win_rate_pct": 76.3,
+      "profit_factor": 1.86,
+      "num_trades": 59,
+      "holdout_first_half_return_pct": 2.18,
+      "holdout_second_half_return_pct": 4.57
     },
-    "production_note": "Both overlays are now the config.yaml defaults (risk.max_hold_bars, risk.use_volatility_filter, etc.) and are applied automatically by build_config()/LiveTrader. The volatility filter (halve size when ATR is above its own trailing 95th percentile) was the single best individual improvement found across the whole project: it improved return, Sharpe, Sortino, max drawdown, AND profit factor simultaneously, consistently across 85/90/95th-percentile thresholds and both holdout halves. See scripts/test_volatility_and_mtf_filters.py and scripts/test_friend_filters.py for the full comparison."
+    "production_note": "All three overlays are now config.yaml defaults (risk.max_hold_bars, risk.use_volatility_filter, risk.use_trailing_stop, ...) applied automatically by build_config()/LiveTrader. In order of addition: (1) 15-bar time stop, (2) ATR-95th-percentile volatility regime filter, (3) trailing stop (0.4R start/0.4R distance) -- the single best individual improvement found in the whole project, validated robust across a wide start/distance neighborhood (0.3-0.75R), not a lucky single value. See scripts/test_friend_filters.py, scripts/test_volatility_and_mtf_filters.py, and scripts/test_final_ideas.py for the full comparisons."
   }
 }
