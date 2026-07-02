@@ -24,6 +24,9 @@ risk:
   max_drawdown_pct: 15.0          # kill-switch: stop trading entirely until manually reset
   default_stop_loss_pips: 40
   default_take_profit_pips: 80
+  max_hold_bars: 15                # time stop: force-exit after N bars regardless of signal/SL/TP.
+                                    # Tuned (and validated stable across 13-16) on H4 EURUSD -- re-tune
+                                    # for other timeframes/symbols before trusting it there.
 
 backtest:
   train_test_split: 0.7           # fraction of history used for in-sample optimization

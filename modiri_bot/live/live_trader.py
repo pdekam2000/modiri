@@ -34,6 +34,7 @@ class LiveTrader:
         magic: int,
         deviation: int = 20,
         lookback_bars: int = 500,
+        max_hold_bars: int | None = None,
     ):
         self.client = client
         self.symbol_cfg = symbol_cfg
@@ -43,17 +44,26 @@ class LiveTrader:
         self.magic = magic
         self.deviation = deviation
         self.lookback_bars = lookback_bars
+        self.max_hold_bars = max_hold_bars
 
         account = client.account_info()
         self.risk_manager = RiskManager(risk_limits, starting_equity=account["equity"])
 
-    def _current_position_side(self) -> int:
+    def _our_positions(self) -> list[dict]:
         positions = self.client.open_positions(self.symbol_cfg.name)
-        magic_positions = [p for p in positions if p.get("magic") == self.magic]
+        return [p for p in positions if p.get("magic") == self.magic]
+
+    def _current_position_side(self) -> int:
+        magic_positions = self._our_positions()
         if not magic_positions:
             return 0
         # POSITION_TYPE_BUY == 0, POSITION_TYPE_SELL == 1 in the MT5 API.
         return 1 if magic_positions[0]["type"] == 0 else -1
+
+    def _bars_held(self, position: dict) -> float:
+        entry_time = datetime.fromtimestamp(position["time"], tz=timezone.utc)
+        elapsed = datetime.now(timezone.utc) - entry_time
+        return elapsed / timeframe_to_timedelta(self.symbol_cfg.timeframe)
 
     def _fetch_recent_bars(self):
         span = timeframe_to_timedelta(self.symbol_cfg.timeframe) * self.lookback_bars
@@ -67,6 +77,14 @@ class LiveTrader:
         equity = account["equity"]
         today = datetime.now(timezone.utc).date()
         self.risk_manager.update_equity(equity, today)
+
+        if self.max_hold_bars is not None:
+            for p in self._our_positions():
+                if self._bars_held(p) >= self.max_hold_bars:
+                    result = self.client.close_position(p, deviation=self.deviation)
+                    logger.info("Time stop: closed position %s after %.1f bars: %s",
+                                p["ticket"], self._bars_held(p), result.message)
+                    return  # let the next poll cycle decide whether to re-enter
 
         df = self._fetch_recent_bars()
         if len(df) < 2:

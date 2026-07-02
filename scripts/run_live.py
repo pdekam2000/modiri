@@ -75,6 +75,7 @@ def main() -> None:
         take_profit_pips=risk_cfg["default_take_profit_pips"],
         magic=cfg["mt5"]["magic_number"],
         deviation=cfg["mt5"]["deviation_points"],
+        max_hold_bars=risk_cfg.get("max_hold_bars"),
     )
 
     try:

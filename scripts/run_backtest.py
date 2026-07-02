@@ -43,6 +43,7 @@ def build_config(cfg: dict, symbol_name: str) -> BacktestConfig:
         take_profit_pips=risk["default_take_profit_pips"],
         max_daily_loss_pct=risk["max_daily_loss_pct"],
         max_drawdown_pct=risk["max_drawdown_pct"],
+        max_hold_bars=risk.get("max_hold_bars"),
     )
 
 
