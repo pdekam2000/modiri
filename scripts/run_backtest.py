@@ -47,6 +47,9 @@ def build_config(cfg: dict, symbol_name: str) -> BacktestConfig:
         use_volatility_filter=risk.get("use_volatility_filter", False),
         volatility_percentile_threshold=risk.get("volatility_percentile_threshold", 95.0),
         volatility_size_mult=risk.get("volatility_size_mult", 0.5),
+        use_trailing_stop=risk.get("use_trailing_stop", False),
+        trailing_start_r_multiple=risk.get("trailing_start_r_multiple", 1.0),
+        trailing_distance_r_multiple=risk.get("trailing_distance_r_multiple", 1.0),
     )
 
 

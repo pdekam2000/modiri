@@ -172,3 +172,19 @@ class MT5Client:
         if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
             return OrderResult(False, None, f"close failed: {result}", raw=result)
         return OrderResult(True, result.order, "ok", raw=result)
+
+    def modify_position_sl(self, position: dict, new_sl: float) -> OrderResult:
+        """Move an open position's stop-loss (e.g. for a trailing stop)
+        without closing it. Take-profit is left as-is."""
+        mt5 = self._mt5
+        request = {
+            "action": mt5.TRADE_ACTION_SLTP,
+            "symbol": position["symbol"],
+            "position": position["ticket"],
+            "sl": new_sl,
+            "tp": position.get("tp", 0.0),
+        }
+        result = mt5.order_send(request)
+        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+            return OrderResult(False, None, f"modify SL failed: {result}", raw=result)
+        return OrderResult(True, result.order, "ok", raw=result)

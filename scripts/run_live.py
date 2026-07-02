@@ -79,6 +79,9 @@ def main() -> None:
         use_volatility_filter=risk_cfg.get("use_volatility_filter", False),
         volatility_percentile_threshold=risk_cfg.get("volatility_percentile_threshold", 95.0),
         volatility_size_mult=risk_cfg.get("volatility_size_mult", 0.5),
+        use_trailing_stop=risk_cfg.get("use_trailing_stop", False),
+        trailing_start_r_multiple=risk_cfg.get("trailing_start_r_multiple", 0.4),
+        trailing_distance_r_multiple=risk_cfg.get("trailing_distance_r_multiple", 0.4),
     )
 
     try:

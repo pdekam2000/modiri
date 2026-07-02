@@ -31,6 +31,11 @@ risk:
   volatility_percentile_threshold: 95.0   # own trailing history (unstable/expanding volatility).
   volatility_size_mult: 0.5               # Validated to improve return, Sharpe, Sortino, drawdown, and
                                            # profit factor simultaneously on H4 EURUSD -- re-tune elsewhere.
+  use_trailing_stop: true           # trail the stop once price has moved this many stop-distances in
+  trailing_start_r_multiple: 0.4    # profit, staying trailing_distance_r_multiple stop-distances behind
+  trailing_distance_r_multiple: 0.4 # the best price seen. The single best individual improvement found
+                                     # in this project -- robust across a wide neighborhood of start/
+                                     # distance values (0.3-0.75), not a single lucky pick. Re-tune elsewhere.
 
 backtest:
   train_test_split: 0.7           # fraction of history used for in-sample optimization

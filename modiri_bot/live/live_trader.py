@@ -39,6 +39,9 @@ class LiveTrader:
         use_volatility_filter: bool = False,
         volatility_percentile_threshold: float = 95.0,
         volatility_size_mult: float = 0.5,
+        use_trailing_stop: bool = False,
+        trailing_start_r_multiple: float = 0.4,
+        trailing_distance_r_multiple: float = 0.4,
     ):
         self.client = client
         self.symbol_cfg = symbol_cfg
@@ -52,6 +55,10 @@ class LiveTrader:
         self.use_volatility_filter = use_volatility_filter
         self.volatility_percentile_threshold = volatility_percentile_threshold
         self.volatility_size_mult = volatility_size_mult
+        self.use_trailing_stop = use_trailing_stop
+        self.trailing_start_r_multiple = trailing_start_r_multiple
+        self.trailing_distance_r_multiple = trailing_distance_r_multiple
+        self._entry_sl_distance: dict[int, float] = {}
 
         account = client.account_info()
         self.risk_manager = RiskManager(risk_limits, starting_equity=account["equity"])
@@ -71,6 +78,37 @@ class LiveTrader:
         entry_time = datetime.fromtimestamp(position["time"], tz=timezone.utc)
         elapsed = datetime.now(timezone.utc) - entry_time
         return elapsed / timeframe_to_timedelta(self.symbol_cfg.timeframe)
+
+    def _update_trailing_stops(self, df) -> None:
+        if not self.use_trailing_stop:
+            return
+        for p in self._our_positions():
+            ticket = p["ticket"]
+            sl_distance = self._entry_sl_distance.get(ticket, self.stop_loss_pips * self.symbol_cfg.pip_size)
+            # df's index is naive broker-server time (from MT5Client.fetch_rates);
+            # compare against a naive UTC timestamp built from the position's epoch time.
+            entry_time_naive = datetime.utcfromtimestamp(p["time"])
+            recent = df[df.index >= entry_time_naive]
+            if recent.empty:
+                continue
+
+            is_buy = p["type"] == 0
+            if is_buy:
+                best_price = recent["high"].max()
+                profit_r = (best_price - p["price_open"]) / sl_distance
+                if profit_r >= self.trailing_start_r_multiple:
+                    new_sl = best_price - self.trailing_distance_r_multiple * sl_distance
+                    if new_sl > p.get("sl", 0.0):
+                        result = self.client.modify_position_sl(p, new_sl)
+                        logger.info("Trailing stop moved to %.5f for %s: %s", new_sl, ticket, result.message)
+            else:
+                best_price = recent["low"].min()
+                profit_r = (p["price_open"] - best_price) / sl_distance
+                if profit_r >= self.trailing_start_r_multiple:
+                    new_sl = best_price + self.trailing_distance_r_multiple * sl_distance
+                    if p.get("sl", 0.0) == 0.0 or new_sl < p["sl"]:
+                        result = self.client.modify_position_sl(p, new_sl)
+                        logger.info("Trailing stop moved to %.5f for %s: %s", new_sl, ticket, result.message)
 
     def _fetch_recent_bars(self):
         span = timeframe_to_timedelta(self.symbol_cfg.timeframe) * self.lookback_bars
@@ -97,6 +135,8 @@ class LiveTrader:
         if len(df) < 2:
             logger.warning("Not enough bars returned, skipping this cycle")
             return
+
+        self._update_trailing_stops(df)
 
         # Use the last *closed* bar, not the still-forming current one.
         signal = int(self.strategy.generate_signals(df).iloc[-2])
@@ -154,6 +194,8 @@ class LiveTrader:
             magic=self.magic,
             deviation=self.deviation,
         )
+        if result.success and result.order_id is not None:
+            self._entry_sl_distance[result.order_id] = self.stop_loss_pips * pip
         logger.info("Opened %s %.2f lots %s: %s", side, lots, self.symbol_cfg.name, result.message)
 
     def run_forever(self, poll_seconds: int = 30) -> None:
