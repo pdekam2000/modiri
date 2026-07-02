@@ -23,7 +23,7 @@ from modiri_bot.strategies.registry import PARAM_GRIDS, STRATEGY_CLASSES
 from .engine import BacktestConfig, BacktestEngine
 from .metrics import Metrics, compute_metrics
 
-OBJECTIVES = {"sharpe", "sortino", "calmar"}
+OBJECTIVES = {"sharpe", "sortino", "calmar", "total_return_pct"}
 
 
 def split_holdout(df: pd.DataFrame, train_fraction: float) -> tuple[pd.DataFrame, pd.DataFrame]:

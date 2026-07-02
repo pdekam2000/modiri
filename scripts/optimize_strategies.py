@@ -47,7 +47,8 @@ def main() -> None:
     parser.add_argument("--data", type=str)
     parser.add_argument("--demo", action="store_true")
     parser.add_argument("--symbol", type=str, default="EURUSD")
-    parser.add_argument("--objective", type=str, default=None, choices=["sharpe", "sortino", "calmar"])
+    parser.add_argument("--objective", type=str, default=None,
+                         choices=["sharpe", "sortino", "calmar", "total_return_pct"])
     parser.add_argument("--folds", type=int, default=None)
     parser.add_argument("--train-fraction", type=float, default=None)
     parser.add_argument("--output", type=str, default=str(REPO_ROOT / "config" / "best_strategy.json"))
