@@ -1,0 +1,11 @@
+pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+PyYAML>=6.0
+matplotlib>=3.7
+pytest>=7.4
+
+# Windows-only, required for live trading / pulling history directly from a
+# running MT5 terminal. Backtesting and optimization work fine without it
+# (they read historical bars from CSV instead).
+MetaTrader5>=5.0.45; sys_platform == "win32"

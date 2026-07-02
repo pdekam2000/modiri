@@ -1,0 +1,36 @@
+# Central configuration for modiri_bot.
+# All values here are defaults / examples — tune them for your own account,
+# broker, and risk tolerance before running anything live.
+
+account:
+  initial_balance: 1000.0        # account currency (e.g. EUR)
+  currency: EUR
+
+symbols:
+  - name: EURUSD
+    timeframe: H1                # M1, M5, M15, M30, H1, H4, D1
+    pip_size: 0.0001
+    pip_value_per_lot: 10.0       # approx USD/EUR value of 1 pip for 1.0 standard lot
+    contract_size: 100000
+    min_lot: 0.01
+    lot_step: 0.01
+    spread_pips: 1.2              # typical broker spread, used as a trading cost in backtests
+    commission_per_lot: 7.0       # round-turn commission per standard lot, in account currency
+
+risk:
+  risk_per_trade_pct: 1.0         # % of equity risked on the stop-loss distance of a single trade
+  max_concurrent_trades: 1
+  max_daily_loss_pct: 3.0         # stop opening new trades for the day after this loss
+  max_drawdown_pct: 15.0          # kill-switch: stop trading entirely until manually reset
+  default_stop_loss_pips: 40
+  default_take_profit_pips: 80
+
+backtest:
+  train_test_split: 0.7           # fraction of history used for in-sample optimization
+  walk_forward_folds: 4
+  objective: sharpe                # sharpe | sortino | calmar (risk-adjusted, not raw return)
+
+mt5:
+  # Credentials are read from environment variables (.env), not from this file.
+  magic_number: 20260702
+  deviation_points: 20

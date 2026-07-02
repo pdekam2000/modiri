@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.egg-info/
+
+# local data & run artifacts
+/data/
+/results/
+config/best_strategy.json
+*.log
