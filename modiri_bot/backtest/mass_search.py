@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from modiri_bot.strategies.base import Strategy
+from modiri_bot.strategies.ensemble import EnsembleStrategy
 from modiri_bot.strategies.registry import STRATEGY_CLASSES
 
 # Much finer-grained than modiri_bot/strategies/registry.py's PARAM_GRIDS --
