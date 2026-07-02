@@ -1,0 +1,64 @@
+{
+  "n_variants_generated": 1075,
+  "n_ensemble_combos_tested": 3000000,
+  "best_single": {
+    "config": {
+      "type": "single",
+      "name": "rsi_reversion",
+      "params": {
+        "period": 7,
+        "oversold": 15,
+        "overbought": 90
+      }
+    },
+    "holdout_sharpe": 0.4733746437561965,
+    "holdout_total_return_pct": 1.1440000000001893
+  },
+  "best_ensemble": {
+    "config": {
+      "type": "ensemble",
+      "threshold": 0.3268086910247803,
+      "members": [
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 21,
+            "oversold": 30,
+            "overbought": 90
+          },
+          "weight": 1.5420573949813843
+        },
+        {
+          "name": "stochastic_reversion",
+          "params": {
+            "k_period": 7,
+            "d_period": 3,
+            "oversold": 15,
+            "overbought": 90
+          },
+          "weight": 1.7323249578475952
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 25,
+            "oversold": 30,
+            "overbought": 75
+          },
+          "weight": 1.6896073818206787
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 14,
+            "oversold": 10,
+            "overbought": 85
+          },
+          "weight": 1.3257122039794922
+        }
+      ]
+    },
+    "holdout_sharpe": 1.634649863534502,
+    "holdout_total_return_pct": 4.074000000000133
+  }
+}
