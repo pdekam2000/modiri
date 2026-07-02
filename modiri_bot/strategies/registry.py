@@ -2,11 +2,20 @@
 default parameter search grids for the optimizer."""
 from __future__ import annotations
 
+from .adx_trend import ADXTrendStrategy
+from .atr_channel_breakout import ATRChannelBreakoutStrategy
 from .bollinger_breakout import BollingerBreakoutStrategy
+from .cci_reversion import CCIReversionStrategy
 from .donchian_breakout import DonchianBreakoutStrategy
+from .ichimoku_strategy import IchimokuStrategy
 from .ma_crossover import MACrossoverStrategy
 from .macd_trend import MACDTrendStrategy
+from .mtf_trend_filter import MTFTrendFilterStrategy
+from .parabolic_sar_trend import ParabolicSARTrendStrategy
 from .rsi_reversion import RSIReversionStrategy
+from .stochastic_reversion import StochasticReversionStrategy
+from .trend_pullback import TrendPullbackStrategy
+from .williams_r_reversion import WilliamsRReversionStrategy
 
 STRATEGY_CLASSES = {
     "ma_crossover": MACrossoverStrategy,
@@ -14,11 +23,21 @@ STRATEGY_CLASSES = {
     "macd_trend": MACDTrendStrategy,
     "bollinger_breakout": BollingerBreakoutStrategy,
     "donchian_breakout": DonchianBreakoutStrategy,
+    "ichimoku": IchimokuStrategy,
+    "stochastic_reversion": StochasticReversionStrategy,
+    "adx_trend": ADXTrendStrategy,
+    "atr_channel_breakout": ATRChannelBreakoutStrategy,
+    "cci_reversion": CCIReversionStrategy,
+    "williams_r_reversion": WilliamsRReversionStrategy,
+    "parabolic_sar_trend": ParabolicSARTrendStrategy,
+    "trend_pullback": TrendPullbackStrategy,
+    "mtf_trend_filter": MTFTrendFilterStrategy,
 }
 
 # Reasonably small grids -- kept tight so walk-forward optimization runs in
 # seconds to minutes rather than hours. Widen them once you've got real data
-# and time to spare.
+# and time to spare. modiri_bot/backtest/mass_search.py has much finer
+# grids for the large-scale combination search.
 PARAM_GRIDS = {
     "ma_crossover": {
         "fast_period": [5, 10, 20],
@@ -41,6 +60,46 @@ PARAM_GRIDS = {
     },
     "donchian_breakout": {
         "period": [10, 20, 55],
+    },
+    "ichimoku": {
+        "tenkan_period": [7, 9, 12],
+        "kijun_period": [22, 26, 30],
+        "senkou_b_period": [44, 52, 60],
+    },
+    "stochastic_reversion": {
+        "k_period": [9, 14, 21],
+        "oversold": [15, 20, 25],
+        "overbought": [75, 80, 85],
+    },
+    "adx_trend": {
+        "period": [10, 14, 21],
+        "adx_threshold": [20, 25, 30],
+    },
+    "atr_channel_breakout": {
+        "ema_period": [14, 20, 30],
+        "atr_mult": [1.5, 2.0, 2.5],
+    },
+    "cci_reversion": {
+        "period": [14, 20, 30],
+        "threshold": [80, 100, 150],
+    },
+    "williams_r_reversion": {
+        "period": [9, 14, 21],
+        "oversold": [-90, -80, -70],
+        "overbought": [-30, -20, -10],
+    },
+    "parabolic_sar_trend": {
+        "af_step": [0.01, 0.02, 0.03],
+        "af_max": [0.15, 0.2, 0.3],
+    },
+    "trend_pullback": {
+        "trend_period": [30, 50, 80],
+        "rsi_period": [9, 14, 21],
+    },
+    "mtf_trend_filter": {
+        "fast_period": [5, 10, 15],
+        "slow_period": [20, 30, 50],
+        "htf_trend_period": [10, 20, 30],
     },
 }
 

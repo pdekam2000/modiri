@@ -22,23 +22,12 @@ import numpy as np
 import pandas as pd
 
 from modiri_bot.strategies.base import Strategy
-from modiri_bot.strategies.bollinger_breakout import BollingerBreakoutStrategy
-from modiri_bot.strategies.donchian_breakout import DonchianBreakoutStrategy
-from modiri_bot.strategies.ensemble import EnsembleStrategy
-from modiri_bot.strategies.ma_crossover import MACrossoverStrategy
-from modiri_bot.strategies.macd_trend import MACDTrendStrategy
-from modiri_bot.strategies.rsi_reversion import RSIReversionStrategy
-
-STRATEGY_CLASSES = {
-    "ma_crossover": MACrossoverStrategy,
-    "rsi_reversion": RSIReversionStrategy,
-    "macd_trend": MACDTrendStrategy,
-    "bollinger_breakout": BollingerBreakoutStrategy,
-    "donchian_breakout": DonchianBreakoutStrategy,
-}
+from modiri_bot.strategies.registry import STRATEGY_CLASSES
 
 # Much finer-grained than modiri_bot/strategies/registry.py's PARAM_GRIDS --
-# this is the whole point of the mass search. ~600-900 individual variants.
+# this is the whole point of the mass search. ~1000-1200 individual variants
+# across 13 strategy families (trend, momentum/oscillator mean-reversion,
+# volatility breakout, retracement-in-trend, and multi-timeframe filtered).
 FINE_PARAM_GRIDS = {
     "ma_crossover": {
         "fast_period": [3, 5, 8, 10, 13, 16, 20, 25],
@@ -62,6 +51,46 @@ FINE_PARAM_GRIDS = {
     "donchian_breakout": {
         "period": [5, 8, 10, 15, 20, 25, 30, 40, 55, 70, 100],
     },
+    "ichimoku": {
+        "tenkan_period": [5, 7, 9, 12, 15],
+        "kijun_period": [18, 22, 26, 30, 35],
+        "senkou_b_period": [40, 52, 60, 70],
+    },
+    "stochastic_reversion": {
+        "k_period": [7, 9, 14, 21],
+        "oversold": [10, 15, 20, 25],
+        "overbought": [75, 80, 85, 90],
+    },
+    "adx_trend": {
+        "period": [7, 10, 14, 21],
+        "adx_threshold": [15, 20, 25, 30, 35],
+    },
+    "atr_channel_breakout": {
+        "ema_period": [10, 14, 20, 30, 40],
+        "atr_mult": [1.0, 1.5, 2.0, 2.5, 3.0],
+    },
+    "cci_reversion": {
+        "period": [10, 14, 20, 30],
+        "threshold": [80, 100, 120, 150, 200],
+    },
+    "williams_r_reversion": {
+        "period": [7, 9, 14, 21],
+        "oversold": [-90, -85, -80, -75, -70],
+        "overbought": [-30, -25, -20, -15, -10],
+    },
+    "parabolic_sar_trend": {
+        "af_step": [0.01, 0.02, 0.03, 0.04],
+        "af_max": [0.1, 0.15, 0.2, 0.3, 0.4],
+    },
+    "trend_pullback": {
+        "trend_period": [20, 30, 50, 80, 100],
+        "rsi_period": [7, 9, 14, 21],
+    },
+    "mtf_trend_filter": {
+        "fast_period": [5, 8, 10, 15],
+        "slow_period": [20, 30, 40, 50],
+        "htf_trend_period": [10, 15, 20, 30],
+    },
 }
 
 
@@ -75,6 +104,10 @@ def build_variant_universe() -> list[Strategy]:
             if name == "ma_crossover" and params["fast_period"] >= params["slow_period"]:
                 continue
             if name == "macd_trend" and params["fast"] >= params["slow"]:
+                continue
+            if name == "ichimoku" and params["tenkan_period"] >= params["kijun_period"]:
+                continue
+            if name == "mtf_trend_filter" and params["fast_period"] >= params["slow_period"]:
                 continue
             variants.append(cls(**params))
     return variants

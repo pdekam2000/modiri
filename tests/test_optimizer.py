@@ -4,6 +4,7 @@ import pytest
 from modiri_bot.backtest.engine import BacktestConfig
 from modiri_bot.backtest.optimizer import optimize_strategies, split_holdout, walk_forward_splits
 from modiri_bot.data.synthetic import generate_synthetic_ohlcv
+from modiri_bot.strategies.registry import STRATEGY_CLASSES
 
 
 def test_split_holdout_respects_fraction():
@@ -35,7 +36,7 @@ def test_optimize_strategies_end_to_end_smoke():
     df = generate_synthetic_ohlcv(n_bars=1500, seed=7)
     report = optimize_strategies(df, BacktestConfig(), n_folds=2, objective="sharpe")
 
-    assert len(report.per_strategy_scores) == 5
+    assert len(report.per_strategy_scores) == len(STRATEGY_CLASSES)
     assert report.best_single is not None
     assert report.best_ensemble is not None
     assert report.holdout_single_metrics is not None
