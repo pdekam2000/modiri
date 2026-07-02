@@ -203,3 +203,37 @@ def test_partial_take_profit_moves_stop_to_breakeven():
     assert reasons[:2] == ["take_profit_1", "stop_loss"]
     breakeven_trade = next(t for t in result.trades if t.exit_reason == "stop_loss")
     assert breakeven_trade.exit_price == pytest.approx(1.1000)  # breakeven, not the original far-off stop
+
+
+def test_risk_multiplier_scales_position_size_down():
+    df = flat_df(n=5)
+    # A bigger balance keeps the raw risk-based lot size well clear of the
+    # 0.01 lot-step rounding boundary, so halving it doesn't get distorted
+    # by flooring.
+    cfg = make_config(initial_balance=10_000.0, stop_loss_pips=20.0, take_profit_pips=1000.0)
+    engine = BacktestEngine(cfg)
+
+    result_full = engine.run(df, ConstantSignalStrategy(1))
+    half_risk = pd.Series(0.5, index=df.index)
+    result_half = engine.run(df, ConstantSignalStrategy(1), risk_multiplier=half_risk)
+
+    assert result_half.trades[0].lots == pytest.approx(result_full.trades[0].lots / 2)
+
+
+def test_stop_multiplier_tightens_the_stop_distance():
+    n = 10
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    high = np.full(n, 1.1000)
+    low = np.full(n, 1.0983)  # -17 pips: inside the normal 20-pip stop, outside a tightened 16-pip stop
+    df = pd.DataFrame({"open": close, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    cfg = make_config(stop_loss_pips=20.0, take_profit_pips=1000.0, spread_pips=0.0, commission_per_lot=0.0)
+    engine = BacktestEngine(cfg)
+
+    result_normal = engine.run(df, ConstantSignalStrategy(1))
+    assert all(t.exit_reason != "stop_loss" for t in result_normal.trades)
+
+    tighter = pd.Series(0.8, index=df.index)  # 20% tighter -> 16 pip stop
+    result_tight = engine.run(df, ConstantSignalStrategy(1), stop_multiplier=tighter)
+    assert any(t.exit_reason == "stop_loss" for t in result_tight.trades)

@@ -93,7 +93,19 @@ class BacktestEngine:
     def __init__(self, config: BacktestConfig):
         self.config = config
 
-    def run(self, df: pd.DataFrame, strategy: Strategy) -> BacktestResult:
+    def run(
+        self,
+        df: pd.DataFrame,
+        strategy: Strategy,
+        risk_multiplier: pd.Series | None = None,
+        stop_multiplier: pd.Series | None = None,
+    ) -> BacktestResult:
+        """risk_multiplier/stop_multiplier: optional per-bar scale factors
+        (aligned to df.index, evaluated at each new position's entry bar)
+        applied to risk_per_trade_pct and stop_loss_pips respectively --
+        e.g. to size counter-trend trades smaller or give them a tighter
+        stop, without excluding them outright. Both default to 1.0
+        (no change) when not provided."""
         cfg = self.config
         signals = strategy.generate_signals(df).to_numpy()
 
@@ -102,6 +114,9 @@ class BacktestEngine:
         l = df["low"].to_numpy()
         c = df["close"].to_numpy()
         n = len(df)
+
+        risk_mult = risk_multiplier.reindex(idx).fillna(1.0).to_numpy() if risk_multiplier is not None else None
+        stop_mult = stop_multiplier.reindex(idx).fillna(1.0).to_numpy() if stop_multiplier is not None else None
 
         atr_values = (
             atr_indicator(df["high"], df["low"], df["close"], cfg.atr_period).to_numpy()
@@ -215,9 +230,13 @@ class BacktestEngine:
                     sl_pips = cfg.stop_loss_pips
                     tp_pips = cfg.take_profit_pips
 
+                if stop_mult is not None:
+                    sl_pips = sl_pips * stop_mult[i]
+                effective_risk_pct = cfg.risk_per_trade_pct * (risk_mult[i] if risk_mult is not None else 1.0)
+
                 lots = lots_for_fixed_risk(
                     equity=balance,
-                    risk_per_trade_pct=cfg.risk_per_trade_pct,
+                    risk_per_trade_pct=effective_risk_pct,
                     stop_loss_pips=sl_pips,
                     pip_value_per_lot=cfg.pip_value_per_lot,
                     min_lot=cfg.min_lot,
