@@ -1,0 +1,72 @@
+{
+  "n_variants_generated": 642,
+  "n_ensemble_combos_tested": 3000000,
+  "best_single": {
+    "config": {
+      "type": "single",
+      "name": "rsi_reversion",
+      "params": {
+        "period": 14,
+        "oversold": 20,
+        "overbought": 90
+      }
+    },
+    "holdout_sharpe": -2.6134452734346825,
+    "holdout_total_return_pct": -2.1419999999998995
+  },
+  "best_ensemble": {
+    "config": {
+      "type": "ensemble",
+      "threshold": 0.3215160667896271,
+      "members": [
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 14,
+            "oversold": 20,
+            "overbought": 90
+          },
+          "weight": 0.5717337727546692
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 21,
+            "oversold": 25,
+            "overbought": 90
+          },
+          "weight": 0.6014057993888855
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 11,
+            "oversold": 25,
+            "overbought": 90
+          },
+          "weight": 0.5550147891044617
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 25,
+            "oversold": 25,
+            "overbought": 70
+          },
+          "weight": 0.8787519335746765
+        },
+        {
+          "name": "ma_crossover",
+          "params": {
+            "fast_period": 20,
+            "slow_period": 50,
+            "use_ema": false
+          },
+          "weight": 0.40057477355003357
+        }
+      ]
+    },
+    "holdout_sharpe": -1.3009668875889528,
+    "holdout_total_return_pct": -1.1939999999999507
+  }
+}
