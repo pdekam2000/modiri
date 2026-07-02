@@ -18,9 +18,11 @@ from modiri_bot.strategies.mfi_reversion import MFIReversionStrategy
 from modiri_bot.strategies.mtf_trend_filter import MTFTrendFilterStrategy
 from modiri_bot.strategies.parabolic_sar_trend import ParabolicSARTrendStrategy
 from modiri_bot.strategies.rsi_reversion import RSIReversionStrategy
+from modiri_bot.strategies.session_filtered import SessionFilteredStrategy
 from modiri_bot.strategies.stochastic_reversion import StochasticReversionStrategy
 from modiri_bot.strategies.supertrend_strategy import SuperTrendStrategy
 from modiri_bot.strategies.trend_pullback import TrendPullbackStrategy
+from modiri_bot.strategies.volume_spike import VolumeSpikeStrategy
 from modiri_bot.strategies.vortex_trend import VortexTrendStrategy
 from modiri_bot.strategies.vwap_reversion import VWAPReversionStrategy
 from modiri_bot.strategies.wick_rejection import WickRejectionStrategy
@@ -49,6 +51,8 @@ ALL_STRATEGIES = [
     VWAPReversionStrategy(),
     CandlestickPatternStrategy(),
     WickRejectionStrategy(),
+    VolumeSpikeStrategy(),
+    SessionFilteredStrategy(),
 ]
 
 
@@ -146,3 +150,37 @@ def test_wick_rejection_needs_both_long_wick_and_counter_trend():
     strategy = WickRejectionStrategy(trend_period=10, wick_ratio_min=0.6, hold_bars=3)
     signals = strategy.generate_signals(df)
     assert signals.iloc[-1] == 1
+
+
+def test_volume_spike_follows_direction_of_the_spike_bar():
+    n = 40
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    open_ = np.full(n, 1.1000)
+    volume = np.full(n, 100.0)
+    # A clearly bullish candle with volume far above the rolling average.
+    open_[-1], close[-1] = 1.0990, 1.1030
+    volume[-1] = 1000.0
+    df = pd.DataFrame(
+        {"open": open_, "high": np.maximum(open_, close) + 0.0002,
+         "low": np.minimum(open_, close) - 0.0002, "close": close, "volume": volume},
+        index=index,
+    )
+    strategy = VolumeSpikeStrategy(volume_period=10, spike_mult=2.0, hold_bars=3)
+    signals = strategy.generate_signals(df)
+    assert signals.iloc[-1] == 1
+
+
+def test_session_filter_zeroes_signal_outside_the_window():
+    n = 48
+    index = pd.date_range("2024-01-01", periods=n, freq="h")  # covers all 24 hours twice
+    close = 1.10 + np.arange(n) * 0.0005  # steady uptrend -> base signal would be long throughout
+    df = pd.DataFrame(
+        {"open": close, "high": close + 0.0002, "low": close - 0.0002, "close": close, "volume": 100.0},
+        index=index,
+    )
+    strategy = SessionFilteredStrategy(fast_period=2, slow_period=5, session_start_hour=8, session_end_hour=16)
+    signals = strategy.generate_signals(df)
+    outside_hours = signals.index.hour[(signals.index.hour < 8) | (signals.index.hour >= 16)]
+    assert len(outside_hours) > 0
+    assert (signals[(signals.index.hour < 8) | (signals.index.hour >= 16)] == 0).all()

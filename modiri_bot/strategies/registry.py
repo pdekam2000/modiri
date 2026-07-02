@@ -17,9 +17,11 @@ from .mfi_reversion import MFIReversionStrategy
 from .mtf_trend_filter import MTFTrendFilterStrategy
 from .parabolic_sar_trend import ParabolicSARTrendStrategy
 from .rsi_reversion import RSIReversionStrategy
+from .session_filtered import SessionFilteredStrategy
 from .stochastic_reversion import StochasticReversionStrategy
 from .supertrend_strategy import SuperTrendStrategy
 from .trend_pullback import TrendPullbackStrategy
+from .volume_spike import VolumeSpikeStrategy
 from .vortex_trend import VortexTrendStrategy
 from .vwap_reversion import VWAPReversionStrategy
 from .wick_rejection import WickRejectionStrategy
@@ -48,6 +50,8 @@ STRATEGY_CLASSES = {
     "vwap_reversion": VWAPReversionStrategy,
     "candlestick_patterns": CandlestickPatternStrategy,
     "wick_rejection": WickRejectionStrategy,
+    "volume_spike": VolumeSpikeStrategy,
+    "session_filtered": SessionFilteredStrategy,
 }
 
 # Reasonably small grids -- kept tight so walk-forward optimization runs in
@@ -149,6 +153,16 @@ PARAM_GRIDS = {
     "wick_rejection": {
         "trend_period": [30, 50, 80],
         "wick_ratio_min": [0.5, 0.6, 0.7],
+    },
+    "volume_spike": {
+        "volume_period": [10, 20, 30],
+        "spike_mult": [2.0, 2.5, 3.0],
+    },
+    "session_filtered": {
+        "fast_period": [5, 10, 15],
+        "slow_period": [20, 30, 50],
+        "session_start_hour": [7, 8, 13],
+        "session_end_hour": [11, 16, 17],
     },
 }
 

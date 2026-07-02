@@ -128,6 +128,17 @@ FINE_PARAM_GRIDS = {
         "wick_ratio_min": [0.4, 0.5, 0.6, 0.7, 0.8],
         "hold_bars": [3, 5, 8, 12],
     },
+    "volume_spike": {
+        "volume_period": [5, 10, 15, 20, 30],
+        "spike_mult": [1.5, 2.0, 2.5, 3.0, 4.0],
+        "hold_bars": [2, 3, 5, 8, 12],
+    },
+    "session_filtered": {
+        "fast_period": [3, 5, 8, 10, 15],
+        "slow_period": [20, 30, 40, 50],
+        "session_start_hour": [0, 6, 7, 8, 12, 13],
+        "session_end_hour": [10, 11, 16, 17, 21, 23],
+    },
 }
 
 
@@ -145,6 +156,11 @@ def build_variant_universe() -> list[Strategy]:
             if name == "ichimoku" and params["tenkan_period"] >= params["kijun_period"]:
                 continue
             if name == "mtf_trend_filter" and params["fast_period"] >= params["slow_period"]:
+                continue
+            if name == "session_filtered" and (
+                params["fast_period"] >= params["slow_period"]
+                or params["session_start_hour"] >= params["session_end_hour"]
+            ):
                 continue
             variants.append(cls(**params))
     return variants
