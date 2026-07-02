@@ -76,6 +76,9 @@ def main() -> None:
         magic=cfg["mt5"]["magic_number"],
         deviation=cfg["mt5"]["deviation_points"],
         max_hold_bars=risk_cfg.get("max_hold_bars"),
+        use_volatility_filter=risk_cfg.get("use_volatility_filter", False),
+        volatility_percentile_threshold=risk_cfg.get("volatility_percentile_threshold", 95.0),
+        volatility_size_mult=risk_cfg.get("volatility_size_mult", 0.5),
     )
 
     try:

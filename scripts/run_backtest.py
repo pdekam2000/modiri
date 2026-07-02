@@ -44,6 +44,9 @@ def build_config(cfg: dict, symbol_name: str) -> BacktestConfig:
         max_daily_loss_pct=risk["max_daily_loss_pct"],
         max_drawdown_pct=risk["max_drawdown_pct"],
         max_hold_bars=risk.get("max_hold_bars"),
+        use_volatility_filter=risk.get("use_volatility_filter", False),
+        volatility_percentile_threshold=risk.get("volatility_percentile_threshold", 95.0),
+        volatility_size_mult=risk.get("volatility_size_mult", 0.5),
     )
 
 

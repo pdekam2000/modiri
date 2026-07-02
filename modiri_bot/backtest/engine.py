@@ -67,6 +67,17 @@ class BacktestConfig:
     # worked out within a bounded window probably isn't going to.
     max_hold_bars: int | None = None
 
+    # Volatility regime filter: shrink position size when current ATR sits
+    # in the extreme upper tail of its own trailing history (unstable/
+    # expanding volatility), rather than a fixed ATR level or ADX trend
+    # strength -- validated to improve return, Sharpe, Sortino, drawdown,
+    # and profit factor simultaneously on real EURUSD H4 data.
+    use_volatility_filter: bool = False
+    volatility_atr_period: int = 14
+    volatility_lookback_bars: int = 252
+    volatility_percentile_threshold: float = 95.0
+    volatility_size_mult: float = 0.5
+
 
 @dataclass
 class Trade:
@@ -127,6 +138,16 @@ class BacktestEngine:
             atr_indicator(df["high"], df["low"], df["close"], cfg.atr_period).to_numpy()
             if cfg.use_atr_stops else None
         )
+
+        volatility_regime_mult = None
+        if cfg.use_volatility_filter:
+            vol_atr = atr_indicator(df["high"], df["low"], df["close"], cfg.volatility_atr_period)
+            percentile_rank = vol_atr.rolling(
+                cfg.volatility_lookback_bars, min_periods=max(cfg.volatility_lookback_bars // 2, 20)
+            ).apply(lambda x: (x[-1] > x).mean() * 100, raw=True)
+            volatility_regime_mult = np.where(
+                percentile_rank.to_numpy() > cfg.volatility_percentile_threshold, cfg.volatility_size_mult, 1.0
+            )
 
         balance = cfg.initial_balance
         equity_curve = np.empty(n)
@@ -243,6 +264,8 @@ class BacktestEngine:
                 if stop_mult is not None:
                     sl_pips = sl_pips * stop_mult[i]
                 effective_risk_pct = cfg.risk_per_trade_pct * (risk_mult[i] if risk_mult is not None else 1.0)
+                if volatility_regime_mult is not None:
+                    effective_risk_pct *= volatility_regime_mult[i]
 
                 lots = lots_for_fixed_risk(
                     equity=balance,

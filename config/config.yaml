@@ -27,6 +27,10 @@ risk:
   max_hold_bars: 15                # time stop: force-exit after N bars regardless of signal/SL/TP.
                                     # Tuned (and validated stable across 13-16) on H4 EURUSD -- re-tune
                                     # for other timeframes/symbols before trusting it there.
+  use_volatility_filter: true       # halve position size when ATR is in the extreme upper tail of its
+  volatility_percentile_threshold: 95.0   # own trailing history (unstable/expanding volatility).
+  volatility_size_mult: 0.5               # Validated to improve return, Sharpe, Sortino, drawdown, and
+                                           # profit factor simultaneously on H4 EURUSD -- re-tune elsewhere.
 
 backtest:
   train_test_split: 0.7           # fraction of history used for in-sample optimization

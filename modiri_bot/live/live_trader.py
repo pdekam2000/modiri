@@ -16,6 +16,7 @@ from modiri_bot.data.mt5_client import MT5Client
 from modiri_bot.risk.position_sizing import lots_for_fixed_risk
 from modiri_bot.risk.risk_manager import RiskLimits, RiskManager
 from modiri_bot.strategies.base import Strategy
+from modiri_bot.strategies.indicators import atr as atr_indicator
 from modiri_bot.utils.config import SymbolConfig
 from modiri_bot.utils.timeframes import timeframe_to_timedelta
 
@@ -35,6 +36,9 @@ class LiveTrader:
         deviation: int = 20,
         lookback_bars: int = 500,
         max_hold_bars: int | None = None,
+        use_volatility_filter: bool = False,
+        volatility_percentile_threshold: float = 95.0,
+        volatility_size_mult: float = 0.5,
     ):
         self.client = client
         self.symbol_cfg = symbol_cfg
@@ -45,6 +49,9 @@ class LiveTrader:
         self.deviation = deviation
         self.lookback_bars = lookback_bars
         self.max_hold_bars = max_hold_bars
+        self.use_volatility_filter = use_volatility_filter
+        self.volatility_percentile_threshold = volatility_percentile_threshold
+        self.volatility_size_mult = volatility_size_mult
 
         account = client.account_info()
         self.risk_manager = RiskManager(risk_limits, starting_equity=account["equity"])
@@ -112,9 +119,17 @@ class LiveTrader:
             logger.warning("Not opening new trade: %s", reason)
             return
 
+        risk_pct = self.risk_manager.limits.risk_per_trade_pct
+        if self.use_volatility_filter:
+            atr_series = atr_indicator(df["high"], df["low"], df["close"], 14)
+            if len(atr_series) >= 20:
+                percentile_rank = (atr_series.iloc[-1] > atr_series).mean() * 100
+                if percentile_rank > self.volatility_percentile_threshold:
+                    risk_pct *= self.volatility_size_mult
+
         lots = lots_for_fixed_risk(
             equity=equity,
-            risk_per_trade_pct=self.risk_manager.limits.risk_per_trade_pct,
+            risk_per_trade_pct=risk_pct,
             stop_loss_pips=self.stop_loss_pips,
             pip_value_per_lot=self.symbol_cfg.pip_value_per_lot,
             min_lot=self.symbol_cfg.min_lot,

@@ -258,3 +258,30 @@ def test_no_time_stop_when_max_hold_bars_is_none():
     engine = BacktestEngine(cfg)
     result = engine.run(df, ConstantSignalStrategy(1))
     assert all(t.exit_reason != "time_stop" for t in result.trades)
+
+
+def test_volatility_filter_shrinks_lots_in_a_high_volatility_regime():
+    n = 400
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    rng = np.random.default_rng(0)
+    # Calm for most of history, then a clear volatility spike right at the end.
+    close = np.full(n, 1.1000) + np.cumsum(rng.normal(0, 0.0001, n))
+    high = close + 0.0003
+    low = close - 0.0003
+    high[-5:] += 0.01  # volatility spike in the final few bars
+    low[-5:] -= 0.01
+    df = pd.DataFrame({"open": close, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    cfg = make_config(
+        stop_loss_pips=20.0, take_profit_pips=1000.0,
+        use_volatility_filter=True, volatility_lookback_bars=100,
+        volatility_percentile_threshold=95.0, volatility_size_mult=0.5,
+    )
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+
+    assert len(result.trades) >= 1
+    last_trade_lots = result.trades[-1].lots
+    cfg_off = make_config(stop_loss_pips=20.0, take_profit_pips=1000.0)
+    result_off = BacktestEngine(cfg_off).run(df, ConstantSignalStrategy(1))
+    assert last_trade_lots < result_off.trades[-1].lots

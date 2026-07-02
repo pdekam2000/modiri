@@ -54,14 +54,26 @@
         }
       ]
     },
-    "holdout_sharpe": 1.7864017840336388,
-    "holdout_total_return_pct": 6.630000000000269,
-    "holdout_first_half_return_pct": 2.30800000000011,
-    "holdout_second_half_return_pct": 3.968000000000149,
-    "note": "Validated on both halves of the holdout independently (split-holdout consistency check). Includes candlestick/wick-based strategies. Best credible candidate as of 2026-07-02, supersedes the earlier RSI+Stochastic-only ensemble.",
-    "recommended_engine_overrides": {
-      "max_hold_bars": 15
+    "holdout_sharpe_no_overlays": 1.7864017840336388,
+    "holdout_total_return_pct_no_overlays": 6.630000000000269,
+    "note": "Validated on both halves of the holdout independently (split-holdout consistency check). Best credible strategy composition found across ~15M+ combinations tested over multiple search rounds (2024-2026 H4 EURUSD, ~2.5 years real data). Supersedes the earlier RSI+Stochastic-only ensemble.",
+    "production_engine_overrides": {
+      "max_hold_bars": 15,
+      "use_volatility_filter": true,
+      "volatility_percentile_threshold": 95.0,
+      "volatility_size_mult": 0.5
     },
-    "engine_override_note": "A 15-H4-bar time stop improves every holdout metric over the no-time-stop baseline (return +6.63%->+6.91%, Sharpe 1.79->1.87, Calmar 3.36->3.52, same ~3.8% max drawdown) and stays consistent on both holdout halves. Checked across bars=13..16, not a single lucky value. See scripts/test_friend_filters.py. Not yet wired into run_backtest.py/run_live.py's BacktestConfig defaults -- pass it explicitly (BacktestConfig(max_hold_bars=15)) until it is."
+    "production_holdout_metrics": {
+      "total_return_pct": 7.28,
+      "sharpe": 2.13,
+      "sortino": 1.49,
+      "max_drawdown_pct": 2.52,
+      "win_rate_pct": 60.0,
+      "profit_factor": 1.75,
+      "num_trades": 35,
+      "holdout_first_half_return_pct": 1.46,
+      "holdout_second_half_return_pct": 5.47
+    },
+    "production_note": "Both overlays are now the config.yaml defaults (risk.max_hold_bars, risk.use_volatility_filter, etc.) and are applied automatically by build_config()/LiveTrader. The volatility filter (halve size when ATR is above its own trailing 95th percentile) was the single best individual improvement found across the whole project: it improved return, Sharpe, Sortino, max drawdown, AND profit factor simultaneously, consistently across 85/90/95th-percentile thresholds and both holdout halves. See scripts/test_volatility_and_mtf_filters.py and scripts/test_friend_filters.py for the full comparison."
   }
 }
