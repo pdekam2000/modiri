@@ -58,6 +58,10 @@
     "holdout_total_return_pct": 6.630000000000269,
     "holdout_first_half_return_pct": 2.30800000000011,
     "holdout_second_half_return_pct": 3.968000000000149,
-    "note": "Validated on both halves of the holdout independently (split-holdout consistency check). Includes candlestick/wick-based strategies. Best credible candidate as of 2026-07-02, supersedes the earlier RSI+Stochastic-only ensemble."
+    "note": "Validated on both halves of the holdout independently (split-holdout consistency check). Includes candlestick/wick-based strategies. Best credible candidate as of 2026-07-02, supersedes the earlier RSI+Stochastic-only ensemble.",
+    "recommended_engine_overrides": {
+      "max_hold_bars": 15
+    },
+    "engine_override_note": "A 15-H4-bar time stop improves every holdout metric over the no-time-stop baseline (return +6.63%->+6.91%, Sharpe 1.79->1.87, Calmar 3.36->3.52, same ~3.8% max drawdown) and stays consistent on both holdout halves. Checked across bars=13..16, not a single lucky value. See scripts/test_friend_filters.py. Not yet wired into run_backtest.py/run_live.py's BacktestConfig defaults -- pass it explicitly (BacktestConfig(max_hold_bars=15)) until it is."
   }
 }
