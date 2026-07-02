@@ -51,11 +51,18 @@ def main() -> None:
     parser.add_argument("--folds", type=int, default=4)
     parser.add_argument("--train-fraction", type=float, default=0.7)
     parser.add_argument("--validate-top", type=int, default=8)
+    parser.add_argument("--stop-loss-pips", type=float, default=None,
+                         help="Override config.yaml's default (useful for timeframes other than H1)")
+    parser.add_argument("--take-profit-pips", type=float, default=None)
     parser.add_argument("--output", type=str, default=str(REPO_ROOT / "config" / "best_strategy_mass_search.json"))
     args = parser.parse_args()
 
     cfg = load_config()
     bt_config = build_config(cfg, args.symbol)
+    if args.stop_loss_pips is not None:
+        bt_config.stop_loss_pips = args.stop_loss_pips
+    if args.take_profit_pips is not None:
+        bt_config.take_profit_pips = args.take_profit_pips
     df = load_ohlcv_csv(args.data)
 
     train_val_df, holdout_df = split_holdout(df, args.train_fraction)
