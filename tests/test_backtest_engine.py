@@ -285,3 +285,54 @@ def test_volatility_filter_shrinks_lots_in_a_high_volatility_regime():
     cfg_off = make_config(stop_loss_pips=20.0, take_profit_pips=1000.0)
     result_off = BacktestEngine(cfg_off).run(df, ConstantSignalStrategy(1))
     assert last_trade_lots < result_off.trades[-1].lots
+
+
+def test_trailing_stop_locks_in_profit_as_price_advances():
+    n = 20
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    high = np.full(n, 1.1000)
+    low = np.full(n, 1.0999)
+    # Runs up in a straight line (activating the trail), then pulls back
+    # hard -- a fixed 20-pip stop from entry would never be touched, but
+    # a trailing stop should lock in most of the move.
+    for i in range(1, 15):
+        high[i] = 1.1000 + i * 0.0010
+        low[i] = high[i] - 0.0002
+        close[i] = high[i] - 0.0001
+    low[15] = 1.1005  # sharp pullback
+    close[15] = 1.1005
+    df = pd.DataFrame({"open": close, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    cfg = make_config(
+        stop_loss_pips=20.0, take_profit_pips=10000.0, spread_pips=0.0, commission_per_lot=0.0,
+        use_trailing_stop=True, trailing_start_r_multiple=1.0, trailing_distance_r_multiple=1.0,
+    )
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+
+    assert len(result.trades) >= 1
+    trade = result.trades[0]
+    # A fixed stop 20 pips below entry (1.0980) never gets hit by this
+    # path; the trailing stop should have closed it well above that,
+    # locking in a much bigger profit than a flat stop would have allowed.
+    assert trade.exit_price > 1.1000
+    assert trade.pnl > 0
+
+
+def test_weekend_close_force_exits_before_friday_cutoff():
+    index = pd.date_range("2024-01-05 08:00:00", periods=10, freq="4h")  # 2024-01-05 is a Friday
+    close = np.full(len(index), 1.1000)
+    df = pd.DataFrame(
+        {"open": close, "high": close, "low": close, "close": close, "volume": 100.0}, index=index
+    )
+    cfg = make_config(stop_loss_pips=20.0, take_profit_pips=1000.0,
+                       close_before_weekend=True, friday_close_hour=20)
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+
+    weekend_exits = [t for t in result.trades if t.exit_reason == "weekend_close"]
+    assert len(weekend_exits) >= 1
+    assert weekend_exits[0].exit_time.hour >= 20
+    # No new position should open at/after the Friday cutoff either.
+    assert all(t.entry_time.weekday() != 4 or t.entry_time.hour < 20 for t in result.trades)

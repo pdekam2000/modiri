@@ -78,6 +78,22 @@ class BacktestConfig:
     volatility_percentile_threshold: float = 95.0
     volatility_size_mult: float = 0.5
 
+    # Trailing stop: once a position has moved favorably by
+    # trailing_start_r_multiple stop-distances, the stop trails
+    # trailing_distance_r_multiple stop-distances behind the best price
+    # seen so far, instead of staying fixed at (or jumping once to)
+    # breakeven.
+    use_trailing_stop: bool = False
+    trailing_start_r_multiple: float = 1.0
+    trailing_distance_r_multiple: float = 1.0
+
+    # Weekend gap avoidance: force-close any open position at/after this
+    # hour on Friday (server time, weekday()==4), and stop opening new
+    # ones from that point until the week rolls over, so no position is
+    # ever held through the weekend gap.
+    close_before_weekend: bool = False
+    friday_close_hour: int = 20
+
 
 @dataclass
 class Trade:
@@ -162,6 +178,9 @@ class BacktestEngine:
         tp1_done = False
         entry_time = None
         bars_held = 0
+        sl_distance = 0.0
+        trailing_active = False
+        best_favorable_price = 0.0
 
         equity_peak = balance
         trading_halted_for_good = False
@@ -230,6 +249,34 @@ class BacktestEngine:
                         close_position(c[i], bar_time, "signal_flip")
                     elif cfg.max_hold_bars is not None and bars_held >= cfg.max_hold_bars:
                         close_position(c[i], bar_time, "time_stop")
+                    elif (
+                        cfg.close_before_weekend
+                        and bar_time.weekday() == 4
+                        and bar_time.hour >= cfg.friday_close_hour
+                    ):
+                        close_position(c[i], bar_time, "weekend_close")
+
+                    # Trailing stop: update the trailing level using this
+                    # bar's favorable extreme, for the *next* bar's SL
+                    # check (never loosens the stop, only tightens it
+                    # toward price).
+                    if cfg.use_trailing_stop and position != 0 and sl_distance > 0:
+                        if position == 1:
+                            best_favorable_price = max(best_favorable_price, h[i])
+                            profit_r = (best_favorable_price - entry_price) / sl_distance
+                            if not trailing_active and profit_r >= cfg.trailing_start_r_multiple:
+                                trailing_active = True
+                            if trailing_active:
+                                candidate = best_favorable_price - cfg.trailing_distance_r_multiple * sl_distance
+                                sl_price = max(sl_price, candidate)
+                        else:
+                            best_favorable_price = min(best_favorable_price, l[i])
+                            profit_r = (entry_price - best_favorable_price) / sl_distance
+                            if not trailing_active and profit_r >= cfg.trailing_start_r_multiple:
+                                trailing_active = True
+                            if trailing_active:
+                                candidate = best_favorable_price + cfg.trailing_distance_r_multiple * sl_distance
+                                sl_price = min(sl_price, candidate)
 
             # 2. Daily loss limit check.
             if cfg.max_daily_loss_pct is not None and day_start_balance > 0:
@@ -245,11 +292,17 @@ class BacktestEngine:
                     trading_halted_for_good = True
 
             # 4. Open a new position if flat and the strategy wants exposure.
+            weekend_blocked = (
+                cfg.close_before_weekend
+                and bar_time.weekday() == 4
+                and bar_time.hour >= cfg.friday_close_hour
+            )
             if (
                 position == 0
                 and signals[i] != 0
                 and not day_trading_blocked
                 and not trading_halted_for_good
+                and not weekend_blocked
             ):
                 side = signals[i]
                 raw_entry = c[i] + spread_cost if side == 1 else c[i] - spread_cost
@@ -282,6 +335,8 @@ class BacktestEngine:
                     entry_time = bar_time
                     tp1_done = False
                     bars_held = 0
+                    trailing_active = False
+                    best_favorable_price = raw_entry
                     sl_distance = sl_pips * cfg.pip_size
                     tp_distance = tp_pips * cfg.pip_size
                     if side == 1:
