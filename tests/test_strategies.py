@@ -8,24 +8,33 @@ from modiri_bot.strategies.atr_channel_breakout import ATRChannelBreakoutStrateg
 from modiri_bot.strategies.awesome_oscillator_momentum import AwesomeOscillatorMomentumStrategy
 from modiri_bot.strategies.bollinger_breakout import BollingerBreakoutStrategy
 from modiri_bot.strategies.candlestick_patterns import CandlestickPatternStrategy
+from modiri_bot.strategies.candlestick_patterns_v2 import CandlestickPatternsV2Strategy
 from modiri_bot.strategies.cci_reversion import CCIReversionStrategy
+from modiri_bot.strategies.cmf_reversion import CMFReversionStrategy
+from modiri_bot.strategies.demarker_reversion import DeMarkerReversionStrategy
 from modiri_bot.strategies.donchian_breakout import DonchianBreakoutStrategy
 from modiri_bot.strategies.ensemble import EnsembleStrategy
+from modiri_bot.strategies.fair_value_gap import FairValueGapStrategy
 from modiri_bot.strategies.heikin_ashi_trend import HeikinAshiTrendStrategy
 from modiri_bot.strategies.ichimoku_strategy import IchimokuStrategy
 from modiri_bot.strategies.ma_crossover import MACrossoverStrategy
 from modiri_bot.strategies.macd_trend import MACDTrendStrategy
+from modiri_bot.strategies.market_structure_bos import MarketStructureBOSStrategy
 from modiri_bot.strategies.mfi_reversion import MFIReversionStrategy
 from modiri_bot.strategies.mtf_trend_filter import MTFTrendFilterStrategy
+from modiri_bot.strategies.obv_trend import OBVTrendStrategy
 from modiri_bot.strategies.parabolic_sar_trend import ParabolicSARTrendStrategy
 from modiri_bot.strategies.pivot_points import PivotPointBounceStrategy
 from modiri_bot.strategies.rsi_divergence import RSIDivergenceStrategy
 from modiri_bot.strategies.rsi_reversion import RSIReversionStrategy
 from modiri_bot.strategies.session_filtered import SessionFilteredStrategy
+from modiri_bot.strategies.stoch_rsi_reversion import StochRSIReversionStrategy
 from modiri_bot.strategies.stochastic_reversion import StochasticReversionStrategy
 from modiri_bot.strategies.supertrend_strategy import SuperTrendStrategy
 from modiri_bot.strategies.swing_level_bounce import SwingLevelBounceStrategy
 from modiri_bot.strategies.trend_pullback import TrendPullbackStrategy
+from modiri_bot.strategies.trix_momentum import TrixMomentumStrategy
+from modiri_bot.strategies.ultimate_oscillator_reversion import UltimateOscillatorReversionStrategy
 from modiri_bot.strategies.volume_spike import VolumeSpikeStrategy
 from modiri_bot.strategies.vortex_trend import VortexTrendStrategy
 from modiri_bot.strategies.vwap_reversion import VWAPReversionStrategy
@@ -61,6 +70,15 @@ ALL_STRATEGIES = [
     PivotPointBounceStrategy(),
     HeikinAshiTrendStrategy(),
     SwingLevelBounceStrategy(),
+    CandlestickPatternsV2Strategy(),
+    OBVTrendStrategy(),
+    CMFReversionStrategy(),
+    StochRSIReversionStrategy(),
+    UltimateOscillatorReversionStrategy(),
+    DeMarkerReversionStrategy(),
+    TrixMomentumStrategy(),
+    MarketStructureBOSStrategy(),
+    FairValueGapStrategy(),
 ]
 
 

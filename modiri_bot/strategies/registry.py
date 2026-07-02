@@ -8,23 +8,32 @@ from .atr_channel_breakout import ATRChannelBreakoutStrategy
 from .awesome_oscillator_momentum import AwesomeOscillatorMomentumStrategy
 from .bollinger_breakout import BollingerBreakoutStrategy
 from .candlestick_patterns import CandlestickPatternStrategy
+from .candlestick_patterns_v2 import CandlestickPatternsV2Strategy
 from .cci_reversion import CCIReversionStrategy
+from .cmf_reversion import CMFReversionStrategy
+from .demarker_reversion import DeMarkerReversionStrategy
 from .donchian_breakout import DonchianBreakoutStrategy
+from .fair_value_gap import FairValueGapStrategy
 from .heikin_ashi_trend import HeikinAshiTrendStrategy
 from .ichimoku_strategy import IchimokuStrategy
 from .ma_crossover import MACrossoverStrategy
 from .macd_trend import MACDTrendStrategy
+from .market_structure_bos import MarketStructureBOSStrategy
 from .mfi_reversion import MFIReversionStrategy
 from .mtf_trend_filter import MTFTrendFilterStrategy
+from .obv_trend import OBVTrendStrategy
 from .parabolic_sar_trend import ParabolicSARTrendStrategy
 from .pivot_points import PivotPointBounceStrategy
 from .rsi_divergence import RSIDivergenceStrategy
 from .rsi_reversion import RSIReversionStrategy
 from .session_filtered import SessionFilteredStrategy
+from .stoch_rsi_reversion import StochRSIReversionStrategy
 from .stochastic_reversion import StochasticReversionStrategy
 from .supertrend_strategy import SuperTrendStrategy
 from .swing_level_bounce import SwingLevelBounceStrategy
 from .trend_pullback import TrendPullbackStrategy
+from .trix_momentum import TrixMomentumStrategy
+from .ultimate_oscillator_reversion import UltimateOscillatorReversionStrategy
 from .volume_spike import VolumeSpikeStrategy
 from .vortex_trend import VortexTrendStrategy
 from .vwap_reversion import VWAPReversionStrategy
@@ -60,6 +69,15 @@ STRATEGY_CLASSES = {
     "pivot_points": PivotPointBounceStrategy,
     "heikin_ashi_trend": HeikinAshiTrendStrategy,
     "swing_level_bounce": SwingLevelBounceStrategy,
+    "candlestick_patterns_v2": CandlestickPatternsV2Strategy,
+    "obv_trend": OBVTrendStrategy,
+    "cmf_reversion": CMFReversionStrategy,
+    "stoch_rsi_reversion": StochRSIReversionStrategy,
+    "ultimate_oscillator_reversion": UltimateOscillatorReversionStrategy,
+    "demarker_reversion": DeMarkerReversionStrategy,
+    "trix_momentum": TrixMomentumStrategy,
+    "market_structure_bos": MarketStructureBOSStrategy,
+    "fair_value_gap": FairValueGapStrategy,
 }
 
 # Reasonably small grids -- kept tight so walk-forward optimization runs in
@@ -184,6 +202,39 @@ PARAM_GRIDS = {
     },
     "swing_level_bounce": {
         "swing_order": [3, 5, 8],
+    },
+    "candlestick_patterns_v2": {
+        "doji_body_ratio": [0.08, 0.1, 0.15],
+        "star_body_ratio": [0.25, 0.3, 0.4],
+    },
+    "obv_trend": {
+        "obv_ma_period": [10, 20, 30],
+    },
+    "cmf_reversion": {
+        "period": [14, 20, 30],
+        "threshold": [0.1, 0.15, 0.2],
+    },
+    "stoch_rsi_reversion": {
+        "rsi_period": [9, 14, 21],
+        "stoch_period": [9, 14, 21],
+    },
+    "ultimate_oscillator_reversion": {
+        "period1": [5, 7],
+        "period2": [14],
+        "period3": [28],
+    },
+    "demarker_reversion": {
+        "period": [10, 14, 21],
+    },
+    "trix_momentum": {
+        "period": [10, 15, 20],
+        "signal_period": [6, 9, 12],
+    },
+    "market_structure_bos": {
+        "swing_order": [3, 5, 8],
+    },
+    "fair_value_gap": {
+        "hold_bars": [3, 5, 8],
     },
 }
 

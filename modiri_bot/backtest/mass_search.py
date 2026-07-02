@@ -155,6 +155,46 @@ FINE_PARAM_GRIDS = {
         "swing_order": [2, 3, 4, 5, 8, 12],
         "hold_bars": [2, 3, 5, 8, 12],
     },
+    "candlestick_patterns_v2": {
+        "doji_body_ratio": [0.05, 0.08, 0.1, 0.12, 0.15, 0.2],
+        "star_body_ratio": [0.2, 0.25, 0.3, 0.35, 0.4],
+        "hold_bars": [3, 5, 8, 12],
+    },
+    "obv_trend": {
+        "obv_ma_period": [5, 10, 15, 20, 30, 50],
+    },
+    "cmf_reversion": {
+        "period": [10, 14, 20, 30, 40],
+        "threshold": [0.05, 0.1, 0.15, 0.2, 0.25],
+    },
+    "stoch_rsi_reversion": {
+        "rsi_period": [7, 9, 14, 21],
+        "stoch_period": [7, 9, 14, 21],
+        "oversold": [10, 15, 20, 25],
+        "overbought": [75, 80, 85, 90],
+    },
+    "ultimate_oscillator_reversion": {
+        "period1": [4, 5, 7, 9],
+        "period2": [10, 14, 18],
+        "period3": [22, 28, 35],
+        "oversold": [20, 25, 30],
+        "overbought": [70, 75, 80],
+    },
+    "demarker_reversion": {
+        "period": [7, 10, 14, 21, 28],
+        "oversold": [0.2, 0.25, 0.3],
+        "overbought": [0.7, 0.75, 0.8],
+    },
+    "trix_momentum": {
+        "period": [8, 10, 12, 15, 20, 25],
+        "signal_period": [5, 6, 9, 12],
+    },
+    "market_structure_bos": {
+        "swing_order": [2, 3, 4, 5, 8, 12],
+    },
+    "fair_value_gap": {
+        "hold_bars": [2, 3, 5, 8, 12],
+    },
 }
 
 
@@ -176,6 +216,10 @@ def build_variant_universe() -> list[Strategy]:
             if name == "session_filtered" and (
                 params["fast_period"] >= params["slow_period"]
                 or params["session_start_hour"] >= params["session_end_hour"]
+            ):
+                continue
+            if name == "ultimate_oscillator_reversion" and not (
+                params["period1"] < params["period2"] < params["period3"]
             ):
                 continue
             variants.append(cls(**params))

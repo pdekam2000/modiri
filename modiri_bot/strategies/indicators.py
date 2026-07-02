@@ -292,3 +292,82 @@ def daily_pivot_points(df: pd.DataFrame):
     s2 = pp - (prev["high"] - prev["low"])
     levels = pd.DataFrame({"pp": pp, "r1": r1, "s1": s1, "r2": r2, "s2": s2})
     return levels.reindex(df.index, method="ffill")
+
+
+def obv(close: pd.Series, volume: pd.Series) -> pd.Series:
+    direction = np.sign(close.diff().fillna(0.0))
+    return (direction * volume).cumsum()
+
+
+def chaikin_money_flow(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series, period: int = 20) -> pd.Series:
+    rng = (high - low).replace(0, np.nan)
+    mf_multiplier = ((close - low) - (high - close)) / rng
+    mf_volume = mf_multiplier * volume
+    return mf_volume.rolling(period, min_periods=period).sum() / volume.rolling(period, min_periods=period).sum().replace(0, np.nan)
+
+
+def stoch_rsi(close: pd.Series, rsi_period: int = 14, stoch_period: int = 14) -> pd.Series:
+    r = rsi(close, rsi_period)
+    lowest = r.rolling(stoch_period, min_periods=stoch_period).min()
+    highest = r.rolling(stoch_period, min_periods=stoch_period).max()
+    rng = (highest - lowest).replace(0, np.nan)
+    return (100 * (r - lowest) / rng).fillna(50)
+
+
+def ultimate_oscillator(high: pd.Series, low: pd.Series, close: pd.Series,
+                         period1: int = 7, period2: int = 14, period3: int = 28) -> pd.Series:
+    prev_close = close.shift(1)
+    bp = close - pd.concat([low, prev_close], axis=1).min(axis=1)
+    tr = pd.concat([high, prev_close], axis=1).max(axis=1) - pd.concat([low, prev_close], axis=1).min(axis=1)
+    tr = tr.replace(0, np.nan)
+
+    def avg(p):
+        return bp.rolling(p, min_periods=p).sum() / tr.rolling(p, min_periods=p).sum()
+
+    avg1, avg2, avg3 = avg(period1), avg(period2), avg(period3)
+    return 100 * (4 * avg1 + 2 * avg2 + avg3) / 7
+
+
+def demarker(high: pd.Series, low: pd.Series, period: int = 14) -> pd.Series:
+    de_max = (high - high.shift(1)).clip(lower=0)
+    de_min = (low.shift(1) - low).clip(lower=0)
+    sum_max = de_max.rolling(period, min_periods=period).sum()
+    sum_min = de_min.rolling(period, min_periods=period).sum()
+    denom = (sum_max + sum_min).replace(0, np.nan)
+    return (sum_max / denom).fillna(0.5)
+
+
+def trix(close: pd.Series, period: int = 15) -> pd.Series:
+    e1 = ema(close, period)
+    e2 = ema(e1, period)
+    e3 = ema(e2, period)
+    return e3.pct_change() * 100.0
+
+
+def wma(series: pd.Series, period: int) -> pd.Series:
+    weights = np.arange(1, period + 1)
+    return series.rolling(period, min_periods=period).apply(lambda x: np.dot(x, weights) / weights.sum(), raw=True)
+
+
+def hma(series: pd.Series, period: int) -> pd.Series:
+    half = max(period // 2, 1)
+    sqrt_p = max(int(round(np.sqrt(period))), 1)
+    return wma(2 * wma(series, half) - wma(series, period), sqrt_p)
+
+
+def fair_value_gaps(high: pd.Series, low: pd.Series):
+    """A bullish FVG is a 3-bar imbalance: bar[i-2]'s high is below bar[i]'s
+    low, leaving a gap the market hasn't traded through -- a common Smart
+    Money Concepts entry zone. Returns (bullish_gap_top, bearish_gap_bottom)
+    Series holding the gap boundary at the bar where it's confirmed (i),
+    NaN elsewhere."""
+    h, l = high.to_numpy(), low.to_numpy()
+    n = len(h)
+    bullish = np.full(n, np.nan)
+    bearish = np.full(n, np.nan)
+    for i in range(2, n):
+        if l[i] > h[i - 2]:
+            bullish[i] = h[i - 2]  # gap floor; price re-entering this zone is the entry idea
+        if h[i] < l[i - 2]:
+            bearish[i] = l[i - 2]  # gap ceiling
+    return pd.Series(bullish, index=high.index), pd.Series(bearish, index=high.index)
