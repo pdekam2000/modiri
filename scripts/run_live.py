@@ -34,7 +34,7 @@ def main() -> None:
     parser.add_argument("--use", choices=["single", "ensemble"], default="ensemble",
                          help="Which winning config from best_strategy.json to trade")
     parser.add_argument("--best-strategy-file", type=str,
-                         default=str(REPO_ROOT / "config" / "best_strategy.json"))
+                         default=str(REPO_ROOT / "config" / "current_best_strategy.json"))
     parser.add_argument("--poll-seconds", type=int, default=30)
     args = parser.parse_args()
 
@@ -51,9 +51,17 @@ def main() -> None:
     best = json.loads(best_path.read_text())[args.use]
     strategy = strategy_from_dict(best["config"])
     print(f"Trading strategy: {strategy!r}")
-    print(f"Holdout backtest Sharpe was {best['holdout_sharpe']:.2f} "
-          f"and holdout return was {best['holdout_total_return_pct']:+.2f}% — "
-          "past backtest performance, not a live guarantee.")
+    metrics = best.get("production_holdout_metrics")
+    if metrics:
+        print(f"Holdout backtest (with production risk overlays): return "
+              f"{metrics['total_return_pct']:+.2f}%, Sharpe {metrics['sharpe']:.2f}, "
+              f"max drawdown {metrics['max_drawdown_pct']:.2f}%, "
+              f"{metrics['num_trades']} trades over ~9 months — "
+              "past backtest performance, not a live guarantee.")
+    else:
+        print(f"Holdout backtest Sharpe was {best['holdout_sharpe']:.2f} "
+              f"and holdout return was {best['holdout_total_return_pct']:+.2f}% — "
+              "past backtest performance, not a live guarantee.")
 
     creds = mt5_credentials()
     client = MT5Client(**creds)

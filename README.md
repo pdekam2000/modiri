@@ -88,11 +88,17 @@ python scripts/optimize_strategies.py --demo
 
 ## 4. Go live (start on a demo account)
 
+By default this trades the validated champion in `config/current_best_strategy.json` (an ensemble found across 15M+ tested combinations, holdout Sharpe 2.71 / return +8.20% over ~9 months — see that file's `production_note` for the full history). Run on a **Windows machine or VPS with your MT5 terminal installed and logged in** — this cannot run inside a Linux sandbox or without a live terminal, since the `MetaTrader5` package talks to the local terminal process, not the broker's server directly.
+
 ```bash
+cp .env.example .env        # fill in MT5_LOGIN / MT5_PASSWORD / MT5_SERVER
+pip install -r requirements.txt
 python scripts/run_live.py --symbol EURUSD --use ensemble --poll-seconds 30
 ```
 
-This polls MT5 for new closed bars, asks the chosen strategy for a signal, and manages a single position per symbol subject to `config/config.yaml`'s risk limits (per-trade risk %, daily loss limit, drawdown kill-switch). Run it against a **demo account** for a meaningful stretch of time before ever pointing it at real money, and only risk capital you can afford to lose.
+This polls MT5 for new closed bars, asks the chosen strategy for a signal, and manages a single position per symbol subject to `config/config.yaml`'s risk limits (per-trade risk %, daily loss limit, drawdown kill-switch) plus the three production overlays baked into that config (15-bar time stop, volatility-percentile filter, trailing stop). Run it against a **demo account** for a meaningful stretch of time before ever pointing it at real money, and only risk capital you can afford to lose.
+
+To trade a different strategy config, pass `--best-strategy-file path/to/file.json` (e.g. one produced by `scripts/optimize_strategies.py`).
 
 ## Tests
 
