@@ -62,6 +62,11 @@ class BacktestConfig:
     tp1_close_fraction: float = 0.5
     move_sl_to_breakeven_after_tp1: bool = True
 
+    # Time stop: force-close a position after this many bars regardless of
+    # signal/SL/TP, on the theory that a mean-reversion trade that hasn't
+    # worked out within a bounded window probably isn't going to.
+    max_hold_bars: int | None = None
+
 
 @dataclass
 class Trade:
@@ -135,6 +140,7 @@ class BacktestEngine:
         tp1_price = 0.0
         tp1_done = False
         entry_time = None
+        bars_held = 0
 
         equity_peak = balance
         trading_halted_for_good = False
@@ -171,8 +177,10 @@ class BacktestEngine:
                 day_trading_blocked = False
 
             # 1. Manage an existing position: partial TP first (if enabled),
-            # then final SL/TP, against this bar's range.
+            # then final SL/TP, then a time stop, against this bar's range.
             if position != 0:
+                bars_held += 1
+
                 if cfg.use_partial_tp and not tp1_done:
                     hit_tp1 = (h[i] >= tp1_price) if position == 1 else (l[i] <= tp1_price)
                     if hit_tp1:
@@ -199,6 +207,8 @@ class BacktestEngine:
                         close_position(tp_price, bar_time, "take_profit")
                     elif signals[i] != position:
                         close_position(c[i], bar_time, "signal_flip")
+                    elif cfg.max_hold_bars is not None and bars_held >= cfg.max_hold_bars:
+                        close_position(c[i], bar_time, "time_stop")
 
             # 2. Daily loss limit check.
             if cfg.max_daily_loss_pct is not None and day_start_balance > 0:
@@ -248,6 +258,7 @@ class BacktestEngine:
                     entry_price = raw_entry
                     entry_time = bar_time
                     tp1_done = False
+                    bars_held = 0
                     sl_distance = sl_pips * cfg.pip_size
                     tp_distance = tp_pips * cfg.pip_size
                     if side == 1:

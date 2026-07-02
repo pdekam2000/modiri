@@ -237,3 +237,24 @@ def test_stop_multiplier_tightens_the_stop_distance():
     tighter = pd.Series(0.8, index=df.index)  # 20% tighter -> 16 pip stop
     result_tight = engine.run(df, ConstantSignalStrategy(1), stop_multiplier=tighter)
     assert any(t.exit_reason == "stop_loss" for t in result_tight.trades)
+
+
+def test_time_stop_force_closes_after_max_hold_bars():
+    df = flat_df(n=20)  # never hits SL/TP/signal_flip on a flat market
+    cfg = make_config(stop_loss_pips=20.0, take_profit_pips=1000.0, max_hold_bars=5)
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+
+    time_stopped = [t for t in result.trades if t.exit_reason == "time_stop"]
+    assert len(time_stopped) >= 1
+    first = time_stopped[0]
+    bars_open = list(df.index).index(first.exit_time) - list(df.index).index(first.entry_time)
+    assert bars_open == 5
+
+
+def test_no_time_stop_when_max_hold_bars_is_none():
+    df = flat_df(n=20)
+    cfg = make_config(stop_loss_pips=20.0, take_profit_pips=1000.0)  # max_hold_bars defaults to None
+    engine = BacktestEngine(cfg)
+    result = engine.run(df, ConstantSignalStrategy(1))
+    assert all(t.exit_reason != "time_stop" for t in result.trades)
