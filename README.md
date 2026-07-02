@@ -42,6 +42,8 @@ scripts/
 config/
   config.yaml    symbols, costs, risk limits, backtest settings
 tests/           pytest unit tests for every module above
+mt5_ea/
+  ModiriBot_EA.mq5   native MQL5 Expert Advisor -- same champion strategy, no Python needed
 ```
 
 ## Setup
@@ -99,6 +101,14 @@ python scripts/run_live.py --symbol EURUSD --use ensemble --poll-seconds 30
 This polls MT5 for new closed bars, asks the chosen strategy for a signal, and manages a single position per symbol subject to `config/config.yaml`'s risk limits (per-trade risk %, daily loss limit, drawdown kill-switch) plus the three production overlays baked into that config (15-bar time stop, volatility-percentile filter, trailing stop). Run it against a **demo account** for a meaningful stretch of time before ever pointing it at real money, and only risk capital you can afford to lose.
 
 To trade a different strategy config, pass `--best-strategy-file path/to/file.json` (e.g. one produced by `scripts/optimize_strategies.py`).
+
+### Alternative: native MT5 Expert Advisor (no Python needed)
+
+`mt5_ea/ModiriBot_EA.mq5` is a self-contained MQL5 port of the same champion
+strategy and risk overlays -- compile it in MetaEditor and attach it directly
+to an EURUSD H4 chart, no Python process required. It also draws a live
+on-chart dashboard (balance, equity, trade count, win rate, P&L). See
+`mt5_ea/README.md` for install/compile steps.
 
 ## Tests
 
