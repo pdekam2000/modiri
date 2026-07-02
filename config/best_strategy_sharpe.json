@@ -1,0 +1,53 @@
+{
+  "objective": "sharpe",
+  "single": {
+    "config": {
+      "type": "single",
+      "name": "rsi_reversion",
+      "params": {
+        "period": 14,
+        "oversold": 30,
+        "overbought": 80
+      }
+    },
+    "cv_score": 3.6145229911891352,
+    "holdout_sharpe": -4.006714562365775,
+    "holdout_total_return_pct": -2.2899999999999032
+  },
+  "ensemble": {
+    "config": {
+      "type": "ensemble",
+      "threshold": 0.0,
+      "members": [
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 14,
+            "oversold": 30,
+            "overbought": 80
+          },
+          "weight": 1.5
+        },
+        {
+          "name": "macd_trend",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9
+          },
+          "weight": 1.0
+        },
+        {
+          "name": "donchian_breakout",
+          "params": {
+            "period": 10
+          },
+          "weight": 0.5
+        }
+      ]
+    },
+    "cv_score": 5.092737747615314,
+    "holdout_sharpe": -3.747402928393833,
+    "holdout_total_return_pct": -4.137999999999275
+  }
+}

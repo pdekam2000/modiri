@@ -1,0 +1,53 @@
+{
+  "objective": "total_return_pct",
+  "single": {
+    "config": {
+      "type": "single",
+      "name": "macd_trend",
+      "params": {
+        "fast": 12,
+        "slow": 26,
+        "signal": 9
+      }
+    },
+    "cv_score": 1.352500000000395,
+    "holdout_sharpe": -2.8119724945763727,
+    "holdout_total_return_pct": -3.2719999999992755
+  },
+  "ensemble": {
+    "config": {
+      "type": "ensemble",
+      "threshold": 0.0,
+      "members": [
+        {
+          "name": "macd_trend",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9
+          },
+          "weight": 0.0
+        },
+        {
+          "name": "rsi_reversion",
+          "params": {
+            "period": 14,
+            "oversold": 30,
+            "overbought": 70
+          },
+          "weight": 1.0
+        },
+        {
+          "name": "donchian_breakout",
+          "params": {
+            "period": 10
+          },
+          "weight": 0.5
+        }
+      ]
+    },
+    "cv_score": 3.006500000000234,
+    "holdout_sharpe": -4.675869302075701,
+    "holdout_total_return_pct": -5.317999999999334
+  }
+}
