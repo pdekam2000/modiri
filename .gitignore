@@ -5,8 +5,10 @@ venv/
 .env
 *.egg-info/
 
-# local data & run artifacts
-/data/
+# local run artifacts
 /results/
 config/best_strategy.json
 *.log
+
+# Real historical bars exported from MT5 (data/*.csv) ARE tracked on purpose
+# so they can be uploaded via GitHub and pulled into other sessions/environments.
