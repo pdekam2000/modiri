@@ -3,7 +3,9 @@ import pandas as pd
 import pytest
 
 from modiri_bot.strategies.adx_trend import ADXTrendStrategy
+from modiri_bot.strategies.aroon_trend import AroonTrendStrategy
 from modiri_bot.strategies.atr_channel_breakout import ATRChannelBreakoutStrategy
+from modiri_bot.strategies.awesome_oscillator_momentum import AwesomeOscillatorMomentumStrategy
 from modiri_bot.strategies.bollinger_breakout import BollingerBreakoutStrategy
 from modiri_bot.strategies.cci_reversion import CCIReversionStrategy
 from modiri_bot.strategies.donchian_breakout import DonchianBreakoutStrategy
@@ -11,11 +13,15 @@ from modiri_bot.strategies.ensemble import EnsembleStrategy
 from modiri_bot.strategies.ichimoku_strategy import IchimokuStrategy
 from modiri_bot.strategies.ma_crossover import MACrossoverStrategy
 from modiri_bot.strategies.macd_trend import MACDTrendStrategy
+from modiri_bot.strategies.mfi_reversion import MFIReversionStrategy
 from modiri_bot.strategies.mtf_trend_filter import MTFTrendFilterStrategy
 from modiri_bot.strategies.parabolic_sar_trend import ParabolicSARTrendStrategy
 from modiri_bot.strategies.rsi_reversion import RSIReversionStrategy
 from modiri_bot.strategies.stochastic_reversion import StochasticReversionStrategy
+from modiri_bot.strategies.supertrend_strategy import SuperTrendStrategy
 from modiri_bot.strategies.trend_pullback import TrendPullbackStrategy
+from modiri_bot.strategies.vortex_trend import VortexTrendStrategy
+from modiri_bot.strategies.vwap_reversion import VWAPReversionStrategy
 from modiri_bot.strategies.williams_r_reversion import WilliamsRReversionStrategy
 
 ALL_STRATEGIES = [
@@ -33,6 +39,12 @@ ALL_STRATEGIES = [
     ParabolicSARTrendStrategy(),
     TrendPullbackStrategy(),
     MTFTrendFilterStrategy(),
+    SuperTrendStrategy(),
+    AroonTrendStrategy(),
+    MFIReversionStrategy(),
+    AwesomeOscillatorMomentumStrategy(),
+    VortexTrendStrategy(),
+    VWAPReversionStrategy(),
 ]
 
 

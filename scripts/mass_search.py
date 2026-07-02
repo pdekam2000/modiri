@@ -148,6 +148,24 @@ def main() -> None:
             "dataset -- it means no robust edge was found, not that the search failed."
         )
 
+    # Split-holdout consistency check: a handful of trades over one holdout
+    # window can look good by luck. Require the winner to also hold up on
+    # each half of the holdout separately, not just combined.
+    mid = len(holdout_df) // 2
+    holdout_a, holdout_b = holdout_df.iloc[:mid], holdout_df.iloc[mid:]
+    metrics_a = compute_metrics(engine.run(holdout_a, best_ensemble))
+    metrics_b = compute_metrics(engine.run(holdout_b, best_ensemble))
+    print(f"\n=== Split-holdout consistency check for the winning ensemble ===")
+    print(f"First half  ({holdout_a.index[0]} -> {holdout_a.index[-1]}, {len(holdout_a)} bars): "
+          f"return {metrics_a.total_return_pct:+.2f}%  Sharpe {metrics_a.sharpe:+.2f}  trades {metrics_a.num_trades}")
+    print(f"Second half ({holdout_b.index[0]} -> {holdout_b.index[-1]}, {len(holdout_b)} bars): "
+          f"return {metrics_b.total_return_pct:+.2f}%  Sharpe {metrics_b.sharpe:+.2f}  trades {metrics_b.num_trades}")
+    if metrics_a.total_return_pct > 0 and metrics_b.total_return_pct > 0:
+        print("Both halves positive -- more consistent with a real, if modest, effect than with luck.")
+    else:
+        print("[!] Not positive on both halves -- treat the combined holdout number with real skepticism; "
+              "it may be carried by one lucky stretch rather than a repeatable edge.")
+
     output = {
         "n_variants_generated": len(variants),
         "n_ensemble_combos_tested": args.n_samples,
@@ -160,6 +178,8 @@ def main() -> None:
             "config": strategy_to_dict(best_ensemble),
             "holdout_sharpe": best_ensemble_metrics.sharpe,
             "holdout_total_return_pct": best_ensemble_metrics.total_return_pct,
+            "holdout_first_half_return_pct": metrics_a.total_return_pct,
+            "holdout_second_half_return_pct": metrics_b.total_return_pct,
         },
     }
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)

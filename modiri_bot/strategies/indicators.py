@@ -154,3 +154,79 @@ def ichimoku(high: pd.Series, low: pd.Series, close: pd.Series,
 
 def rate_of_change(series: pd.Series, period: int = 10) -> pd.Series:
     return (series / series.shift(period) - 1.0) * 100.0
+
+
+def supertrend(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 10, multiplier: float = 3.0):
+    """Returns (supertrend_line, is_uptrend)."""
+    mid = (high + low) / 2.0
+    band = atr(high, low, close, period) * multiplier
+    basic_upper = mid + band
+    basic_lower = mid - band
+
+    n = len(close)
+    c = close.to_numpy()
+    bu = basic_upper.to_numpy()
+    bl = basic_lower.to_numpy()
+    final_upper = np.full(n, np.nan)
+    final_lower = np.full(n, np.nan)
+    trend = np.zeros(n)
+    st = np.full(n, np.nan)
+
+    for i in range(n):
+        if np.isnan(bu[i]):
+            continue
+        if np.isnan(final_upper[i - 1]) if i > 0 else True:
+            final_upper[i] = bu[i]
+            final_lower[i] = bl[i]
+            trend[i] = 1
+        else:
+            final_upper[i] = bu[i] if (bu[i] < final_upper[i - 1] or c[i - 1] > final_upper[i - 1]) else final_upper[i - 1]
+            final_lower[i] = bl[i] if (bl[i] > final_lower[i - 1] or c[i - 1] < final_lower[i - 1]) else final_lower[i - 1]
+            if trend[i - 1] == 1:
+                trend[i] = -1 if c[i] < final_lower[i] else 1
+            else:
+                trend[i] = 1 if c[i] > final_upper[i] else -1
+        st[i] = final_lower[i] if trend[i] == 1 else final_upper[i]
+
+    return pd.Series(st, index=close.index), pd.Series(trend, index=close.index)
+
+
+def aroon(high: pd.Series, low: pd.Series, period: int = 25):
+    periods_since_high = high.rolling(period + 1).apply(lambda x: period - np.argmax(x.to_numpy()), raw=False)
+    periods_since_low = low.rolling(period + 1).apply(lambda x: period - np.argmin(x.to_numpy()), raw=False)
+    aroon_up = 100 * (period - periods_since_high) / period
+    aroon_down = 100 * (period - periods_since_low) / period
+    return aroon_up, aroon_down
+
+
+def money_flow_index(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series, period: int = 14) -> pd.Series:
+    typical = (high + low + close) / 3.0
+    raw_flow = typical * volume
+    direction = typical.diff()
+    pos_flow = raw_flow.where(direction > 0, 0.0).rolling(period, min_periods=period).sum()
+    neg_flow = raw_flow.where(direction < 0, 0.0).rolling(period, min_periods=period).sum()
+    ratio = pos_flow / neg_flow.replace(0, np.nan)
+    return (100 - 100 / (1 + ratio)).fillna(50)
+
+
+def awesome_oscillator(high: pd.Series, low: pd.Series, fast: int = 5, slow: int = 34) -> pd.Series:
+    median_price = (high + low) / 2.0
+    return sma(median_price, fast) - sma(median_price, slow)
+
+
+def vortex(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14):
+    vm_plus = (high - low.shift(1)).abs()
+    vm_minus = (low - high.shift(1)).abs()
+    tr = true_range(high, low, close)
+    tr_sum = tr.rolling(period, min_periods=period).sum().replace(0, np.nan)
+    vi_plus = vm_plus.rolling(period, min_periods=period).sum() / tr_sum
+    vi_minus = vm_minus.rolling(period, min_periods=period).sum() / tr_sum
+    return vi_plus, vi_minus
+
+
+def rolling_vwap(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series, period: int = 20):
+    typical = (high + low + close) / 3.0
+    pv = typical * volume
+    vwap = pv.rolling(period, min_periods=period).sum() / volume.rolling(period, min_periods=period).sum().replace(0, np.nan)
+    dev = (typical - vwap).rolling(period, min_periods=period).std()
+    return vwap, dev

@@ -26,8 +26,8 @@ from modiri_bot.strategies.ensemble import EnsembleStrategy
 from modiri_bot.strategies.registry import STRATEGY_CLASSES
 
 # Much finer-grained than modiri_bot/strategies/registry.py's PARAM_GRIDS --
-# this is the whole point of the mass search. ~1000-1200 individual variants
-# across 13 strategy families (trend, momentum/oscillator mean-reversion,
+# this is the whole point of the mass search. ~1200-1400 individual variants
+# across 20 strategy families (trend, momentum/oscillator mean-reversion,
 # volatility breakout, retracement-in-trend, and multi-timeframe filtered).
 FINE_PARAM_GRIDS = {
     "ma_crossover": {
@@ -91,6 +91,31 @@ FINE_PARAM_GRIDS = {
         "fast_period": [5, 8, 10, 15],
         "slow_period": [20, 30, 40, 50],
         "htf_trend_period": [10, 15, 20, 30],
+        "htf_rule": ["1D", "1W"],
+    },
+    "supertrend": {
+        "period": [7, 10, 14, 20],
+        "multiplier": [1.5, 2.0, 2.5, 3.0, 4.0],
+    },
+    "aroon_trend": {
+        "period": [10, 14, 20, 25, 40],
+        "threshold": [50, 60, 70, 80],
+    },
+    "mfi_reversion": {
+        "period": [7, 9, 14, 21],
+        "oversold": [10, 15, 20, 25],
+        "overbought": [75, 80, 85, 90],
+    },
+    "awesome_oscillator_momentum": {
+        "fast": [5],
+        "slow": [21, 34, 55],
+    },
+    "vortex_trend": {
+        "period": [10, 14, 21, 28],
+    },
+    "vwap_reversion": {
+        "period": [10, 14, 20, 30, 50],
+        "num_std": [1.0, 1.5, 2.0, 2.5, 3.0],
     },
 }
 

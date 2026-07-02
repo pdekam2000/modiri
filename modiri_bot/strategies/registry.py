@@ -3,18 +3,24 @@ default parameter search grids for the optimizer."""
 from __future__ import annotations
 
 from .adx_trend import ADXTrendStrategy
+from .aroon_trend import AroonTrendStrategy
 from .atr_channel_breakout import ATRChannelBreakoutStrategy
+from .awesome_oscillator_momentum import AwesomeOscillatorMomentumStrategy
 from .bollinger_breakout import BollingerBreakoutStrategy
 from .cci_reversion import CCIReversionStrategy
 from .donchian_breakout import DonchianBreakoutStrategy
 from .ichimoku_strategy import IchimokuStrategy
 from .ma_crossover import MACrossoverStrategy
 from .macd_trend import MACDTrendStrategy
+from .mfi_reversion import MFIReversionStrategy
 from .mtf_trend_filter import MTFTrendFilterStrategy
 from .parabolic_sar_trend import ParabolicSARTrendStrategy
 from .rsi_reversion import RSIReversionStrategy
 from .stochastic_reversion import StochasticReversionStrategy
+from .supertrend_strategy import SuperTrendStrategy
 from .trend_pullback import TrendPullbackStrategy
+from .vortex_trend import VortexTrendStrategy
+from .vwap_reversion import VWAPReversionStrategy
 from .williams_r_reversion import WilliamsRReversionStrategy
 
 STRATEGY_CLASSES = {
@@ -32,6 +38,12 @@ STRATEGY_CLASSES = {
     "parabolic_sar_trend": ParabolicSARTrendStrategy,
     "trend_pullback": TrendPullbackStrategy,
     "mtf_trend_filter": MTFTrendFilterStrategy,
+    "supertrend": SuperTrendStrategy,
+    "aroon_trend": AroonTrendStrategy,
+    "mfi_reversion": MFIReversionStrategy,
+    "awesome_oscillator_momentum": AwesomeOscillatorMomentumStrategy,
+    "vortex_trend": VortexTrendStrategy,
+    "vwap_reversion": VWAPReversionStrategy,
 }
 
 # Reasonably small grids -- kept tight so walk-forward optimization runs in
@@ -100,6 +112,30 @@ PARAM_GRIDS = {
         "fast_period": [5, 10, 15],
         "slow_period": [20, 30, 50],
         "htf_trend_period": [10, 20, 30],
+    },
+    "supertrend": {
+        "period": [7, 10, 14],
+        "multiplier": [2.0, 3.0, 4.0],
+    },
+    "aroon_trend": {
+        "period": [14, 25, 40],
+        "threshold": [60, 70, 80],
+    },
+    "mfi_reversion": {
+        "period": [9, 14, 21],
+        "oversold": [15, 20, 25],
+        "overbought": [75, 80, 85],
+    },
+    "awesome_oscillator_momentum": {
+        "fast": [5],
+        "slow": [21, 34],
+    },
+    "vortex_trend": {
+        "period": [10, 14, 21],
+    },
+    "vwap_reversion": {
+        "period": [14, 20, 30],
+        "num_std": [1.5, 2.0, 2.5],
     },
 }
 
