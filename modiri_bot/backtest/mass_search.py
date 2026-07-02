@@ -117,6 +117,17 @@ FINE_PARAM_GRIDS = {
         "period": [10, 14, 20, 30, 50],
         "num_std": [1.0, 1.5, 2.0, 2.5, 3.0],
     },
+    "candlestick_patterns": {
+        "trend_period": [20, 30, 50, 80, 100],
+        "body_ratio_max": [0.25, 0.3, 0.35, 0.4, 0.45],
+        "wick_ratio_min": [1.5, 2.0, 2.5, 3.0],
+        "hold_bars": [3, 5, 8, 12],
+    },
+    "wick_rejection": {
+        "trend_period": [20, 30, 50, 80, 100],
+        "wick_ratio_min": [0.4, 0.5, 0.6, 0.7, 0.8],
+        "hold_bars": [3, 5, 8, 12],
+    },
 }
 
 

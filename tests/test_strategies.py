@@ -7,6 +7,7 @@ from modiri_bot.strategies.aroon_trend import AroonTrendStrategy
 from modiri_bot.strategies.atr_channel_breakout import ATRChannelBreakoutStrategy
 from modiri_bot.strategies.awesome_oscillator_momentum import AwesomeOscillatorMomentumStrategy
 from modiri_bot.strategies.bollinger_breakout import BollingerBreakoutStrategy
+from modiri_bot.strategies.candlestick_patterns import CandlestickPatternStrategy
 from modiri_bot.strategies.cci_reversion import CCIReversionStrategy
 from modiri_bot.strategies.donchian_breakout import DonchianBreakoutStrategy
 from modiri_bot.strategies.ensemble import EnsembleStrategy
@@ -22,6 +23,7 @@ from modiri_bot.strategies.supertrend_strategy import SuperTrendStrategy
 from modiri_bot.strategies.trend_pullback import TrendPullbackStrategy
 from modiri_bot.strategies.vortex_trend import VortexTrendStrategy
 from modiri_bot.strategies.vwap_reversion import VWAPReversionStrategy
+from modiri_bot.strategies.wick_rejection import WickRejectionStrategy
 from modiri_bot.strategies.williams_r_reversion import WilliamsRReversionStrategy
 
 ALL_STRATEGIES = [
@@ -45,6 +47,8 @@ ALL_STRATEGIES = [
     AwesomeOscillatorMomentumStrategy(),
     VortexTrendStrategy(),
     VWAPReversionStrategy(),
+    CandlestickPatternStrategy(),
+    WickRejectionStrategy(),
 ]
 
 
@@ -106,3 +110,39 @@ def test_ensemble_majority_vote():
 def test_ensemble_requires_matching_weight_length():
     with pytest.raises(ValueError):
         EnsembleStrategy([MACrossoverStrategy(), MACDTrendStrategy()], weights=[1.0])
+
+
+def test_bullish_engulfing_triggers_a_long():
+    n = 60
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    close = np.full(n, 1.1000)
+    open_ = np.full(n, 1.1000)
+    # A clean bearish candle at n-2, then a bullish candle at n-1 that
+    # fully engulfs it.
+    open_[-2], close[-2] = 1.1010, 1.0990
+    open_[-1], close[-1] = 1.0985, 1.1015
+    df = pd.DataFrame(
+        {"open": open_, "high": np.maximum(open_, close) + 0.0002,
+         "low": np.minimum(open_, close) - 0.0002, "close": close, "volume": 100.0},
+        index=index,
+    )
+    strategy = CandlestickPatternStrategy(trend_period=10, hold_bars=3)
+    signals = strategy.generate_signals(df)
+    assert signals.iloc[-1] == 1
+
+
+def test_wick_rejection_needs_both_long_wick_and_counter_trend():
+    n = 60
+    index = pd.date_range("2024-01-01", periods=n, freq="h")
+    # A steady downtrend so close < EMA(trend), then one candle with a very
+    # long lower wick (rejection of lower prices) near the end.
+    close = 1.15 - np.arange(n) * 0.0003
+    open_ = close.copy()
+    high = close + 0.0002
+    low = close - 0.0002
+    low[-1] = close[-1] - 0.005  # long lower wick on the last candle
+    df = pd.DataFrame({"open": open_, "high": high, "low": low, "close": close, "volume": 100.0}, index=index)
+
+    strategy = WickRejectionStrategy(trend_period=10, wick_ratio_min=0.6, hold_bars=3)
+    signals = strategy.generate_signals(df)
+    assert signals.iloc[-1] == 1

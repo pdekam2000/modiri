@@ -230,3 +230,14 @@ def rolling_vwap(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.S
     vwap = pv.rolling(period, min_periods=period).sum() / volume.rolling(period, min_periods=period).sum().replace(0, np.nan)
     dev = (typical - vwap).rolling(period, min_periods=period).std()
     return vwap, dev
+
+
+# --- Candle shape (raw price action, not derived from a rolling formula) ---
+
+def candle_shape(open_: pd.Series, high: pd.Series, low: pd.Series, close: pd.Series):
+    """Returns (body, upper_wick, lower_wick, range_) as price-unit Series."""
+    body = (close - open_).abs()
+    range_ = (high - low).replace(0, np.nan)
+    upper_wick = high - pd.concat([open_, close], axis=1).max(axis=1)
+    lower_wick = pd.concat([open_, close], axis=1).min(axis=1) - low
+    return body, upper_wick, lower_wick, range_

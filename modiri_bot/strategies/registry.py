@@ -7,6 +7,7 @@ from .aroon_trend import AroonTrendStrategy
 from .atr_channel_breakout import ATRChannelBreakoutStrategy
 from .awesome_oscillator_momentum import AwesomeOscillatorMomentumStrategy
 from .bollinger_breakout import BollingerBreakoutStrategy
+from .candlestick_patterns import CandlestickPatternStrategy
 from .cci_reversion import CCIReversionStrategy
 from .donchian_breakout import DonchianBreakoutStrategy
 from .ichimoku_strategy import IchimokuStrategy
@@ -21,6 +22,7 @@ from .supertrend_strategy import SuperTrendStrategy
 from .trend_pullback import TrendPullbackStrategy
 from .vortex_trend import VortexTrendStrategy
 from .vwap_reversion import VWAPReversionStrategy
+from .wick_rejection import WickRejectionStrategy
 from .williams_r_reversion import WilliamsRReversionStrategy
 
 STRATEGY_CLASSES = {
@@ -44,6 +46,8 @@ STRATEGY_CLASSES = {
     "awesome_oscillator_momentum": AwesomeOscillatorMomentumStrategy,
     "vortex_trend": VortexTrendStrategy,
     "vwap_reversion": VWAPReversionStrategy,
+    "candlestick_patterns": CandlestickPatternStrategy,
+    "wick_rejection": WickRejectionStrategy,
 }
 
 # Reasonably small grids -- kept tight so walk-forward optimization runs in
@@ -136,6 +140,15 @@ PARAM_GRIDS = {
     "vwap_reversion": {
         "period": [14, 20, 30],
         "num_std": [1.5, 2.0, 2.5],
+    },
+    "candlestick_patterns": {
+        "trend_period": [30, 50, 80],
+        "body_ratio_max": [0.3, 0.35, 0.4],
+        "wick_ratio_min": [1.5, 2.0, 2.5],
+    },
+    "wick_rejection": {
+        "trend_period": [30, 50, 80],
+        "wick_ratio_min": [0.5, 0.6, 0.7],
     },
 }
 
