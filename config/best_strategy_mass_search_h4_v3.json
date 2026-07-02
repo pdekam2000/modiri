@@ -1,5 +1,7 @@
 {
-  "single": {
+  "n_variants_generated": 1775,
+  "n_ensemble_combos_tested": 3000000,
+  "best_single": {
     "config": {
       "type": "single",
       "name": "rsi_reversion",
@@ -12,7 +14,7 @@
     "holdout_sharpe": 0.4733746437561965,
     "holdout_total_return_pct": 1.1440000000001893
   },
-  "ensemble": {
+  "best_ensemble": {
     "config": {
       "type": "ensemble",
       "threshold": 0.2684963643550873,
@@ -57,7 +59,6 @@
     "holdout_sharpe": 1.7864017840336388,
     "holdout_total_return_pct": 6.630000000000269,
     "holdout_first_half_return_pct": 2.30800000000011,
-    "holdout_second_half_return_pct": 3.968000000000149,
-    "note": "Validated on both halves of the holdout independently (split-holdout consistency check). Includes candlestick/wick-based strategies. Best credible candidate as of 2026-07-02, supersedes the earlier RSI+Stochastic-only ensemble."
+    "holdout_second_half_return_pct": 3.968000000000149
   }
 }
