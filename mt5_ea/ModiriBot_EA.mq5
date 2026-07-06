@@ -535,6 +535,10 @@ void CreateDashboard()
    int bodyH = 245;
    CreateRect(g_prefix + "body_bg", PANEL_X, bodyY, PANEL_W, bodyH, slate, teal);
 
+   // Note: MT5 ignores ObjectSetString(...OBJPROP_TEXT, "") on a freshly
+   // created OBJ_LABEL and leaves its built-in default text "Label" visible,
+   // so spacer rows must not be created as label objects at all -- they
+   // only ever need to reserve vertical space between real rows below.
    string rows[] =
      {
       "sym", "status", "sep1",
@@ -545,8 +549,10 @@ void CreateDashboard()
    int y = bodyY + 10;
    for(int i = 0; i < ArraySize(rows); i++)
      {
-      CreateLabel(g_prefix + "row_" + rows[i], PANEL_X + 12, y, "", silver, 9);
-      y += (StringFind(rows[i], "sep") == 0) ? 8 : 17;
+      bool isSep = (StringFind(rows[i], "sep") == 0);
+      if(!isSep)
+         CreateLabel(g_prefix + "row_" + rows[i], PANEL_X + 12, y, " ", silver, 9);
+      y += isSep ? 8 : 17;
      }
   }
 
